@@ -1,6 +1,5 @@
 import { MapManager } from "./MapManager";
 import { EventManager } from "./EventManager";
-import { GameModel } from "../Model/GameModel";
 import { MapConfig, Point, WaveConfig } from "../Model/MapConfig";
 import { CellModel } from "../Model/CellModel";
 import { TowerConfigs, TowerModel, TowerType } from "../Model/TowerModel";
@@ -124,8 +123,8 @@ export class GameManager {
    */
   onCellClicked(row: number, col: number) {
     if (!this._mapConfig) return;
-
-    console.log(`点击格子: (${row}, ${col})`);
+    let cell = this.getCell(row, col);
+    console.log(`点击格子: (${row}, ${col})`, cell);
 
     // 检查是否可以在该格子上建造
     if (this.isBuildable(col, row)) {

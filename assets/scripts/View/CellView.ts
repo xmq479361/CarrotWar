@@ -1,5 +1,6 @@
-import { _decorator, Component, Node, Sprite, Color } from "cc";
+import { _decorator, Component, Node, Sprite, Color, UITransform } from "cc";
 import { CellModel } from "../Model/CellModel";
+import { MapManager } from "../Manager/MapManager";
 
 const { ccclass, property } = _decorator;
 
@@ -14,6 +15,11 @@ export class CellView extends Component {
   private _row: number = 0;
   private _col: number = 0;
   private _model: CellModel = null!;
+
+  private uiTransform: UITransform = null!;
+  onLoad() {
+    this.uiTransform = this.getComponent(UITransform)!;
+  }
 
   /**
    * 初始化格子
@@ -37,18 +43,30 @@ export class CellView extends Component {
   updateView() {
     if (!this._model) return;
 
-    // 设置背景颜色
-    if (this.background && this.cellColors.length > 0) {
-      const colorIndex = Math.min(this._model.type, this.cellColors.length - 1);
-      this.background.color = this.cellColors[colorIndex];
+    // 设置位置
+    this.node.setPosition(
+      MapManager.Instance.getCellPosition(this._row, this._col)
+    );
+    // 设置尺寸
+    if (!this.uiTransform) {
+      this.uiTransform = this.getComponent(UITransform)!;
     }
+    this.uiTransform.width = MapManager.Instance.cellWidth;
+    this.uiTransform.height = MapManager.Instance.cellHeight;
+    // // 设置背景颜色
+    // if (this.background && this.cellColors.length > 0) {
+    //   const colorIndex = Math.min(this._model.type, this.cellColors.length - 1);
+    //   this.background.color = this.cellColors[colorIndex];
+    // }
 
     // 根据是否可建造设置透明度
     if (this.background) {
       const opacity = this._model.buildable ? 255 : 180;
       const color = this.background.color.clone();
       color.a = opacity / 255;
-      this.background.color = color;
+      if (this._model.buildable) {
+        this.background.color = color;
+      }
     }
   }
 

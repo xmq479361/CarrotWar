@@ -6,12 +6,14 @@ import {
   instantiate,
   Prefab,
   resources,
+  input,
+  Input,
+  EventTouch,
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
 import { GameManager } from "../Manager/GameManager";
 import { EventManager } from "../Manager/EventManager";
 import { CellView } from "../View/CellView";
-import { GameModel } from "../Model/GameModel";
 
 const { ccclass, property } = _decorator;
 
@@ -30,6 +32,22 @@ export class MainGameScene extends Component {
 
   start() {
     this.initializeMap();
+    input.on(Input.EventType.TOUCH_START, this.onTouch, this);
+  }
+
+  destroy(): boolean {
+    input.off(Input.EventType.TOUCH_START, this.onTouch, this);
+    return super.destroy();
+  }
+
+  onTouch(event: EventTouch) {
+    let position = this.mapContainer
+      .getComponent(UITransform)
+      .convertToNodeSpaceAR(event.getUILocation().toVec3());
+    console.log("position: ", position);
+    // let [col, row] = MapManager.Instance.getLocationFromPoint(position.x, position.y);
+    // console.log("point:", col, "x", row);
+    GameManager.Instance.handleClickPosition(position.x, position.y);
   }
 
   initializeMap() {
@@ -63,8 +81,6 @@ export class MainGameScene extends Component {
 
     const rows = mapConfig.rows;
     const cols = mapConfig.cols;
-    const cellWidth = MapManager.Instance.cellWidth;
-    const cellHeight = MapManager.Instance.cellHeight;
 
     // 创建格子视图
     for (let row = 0; row < rows; row++) {
@@ -73,16 +89,6 @@ export class MainGameScene extends Component {
       for (let col = 0; col < cols; col++) {
         const cellModel = GameManager.Instance.getCellModel(row, col);
         const cellNode = instantiate(this.cellPrefab);
-
-        // 设置位置
-        cellNode.setPosition(MapManager.Instance.getCellPosition(row, col));
-
-        // 设置尺寸
-        const cellTransform = cellNode.getComponent(UITransform);
-        if (cellTransform) {
-          cellTransform.width = cellWidth;
-          cellTransform.height = cellHeight;
-        }
 
         // 初始化格子视图
         const cellView = cellNode.getComponent(CellView);
