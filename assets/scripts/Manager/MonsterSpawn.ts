@@ -85,7 +85,7 @@ export class MonsterSpawn extends Component {
               wave.startRow ?? mapConfig.startRow
             );
             move.speed = wave.speed * 100;
-            move.setTarget([...mapConfig.paths[0]]);
+            move.setTarget([...mapConfig.paths[wave.pathIndex ?? 0]]);
           }
           // spawner.getComponent(MonsterSpawner).init(wave);
         },

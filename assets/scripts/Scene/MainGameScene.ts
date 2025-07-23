@@ -20,6 +20,8 @@ import { GameState } from "../Data/GameDef";
 import { MonsterManager } from "../Manager/MonsterManager";
 import { Move } from "../Model/Move";
 import { WaveConfig } from "../Model/MapConfig";
+import { CellMenuView } from "../View/CellMenuView";
+import { TowerType } from "../Model/TowerModel";
 
 const { ccclass, property } = _decorator;
 
@@ -29,6 +31,8 @@ export class MainGameScene extends Component {
   mapContainer: Node = null!;
   @property(Prefab)
   cellPrefab: Prefab = null!;
+  @property(Node)
+  menuNode: Node | null = null;
 
   @property(Node)
   bg: Node = null!;
@@ -105,8 +109,51 @@ export class MainGameScene extends Component {
       this._selectedCell.selected = false;
     }
     this._selectedCell = cellView;
+    this.showBuildMenu(row, col);
     // GameManager.Instance.handleClickPosition(position.x, position.y);
-    GameManager.Instance.onCellClicked(row, col);
+    // GameManager.Instance.onCellClicked(row, col);
+  }
+
+  private showBuildMenu(row: number, col: number) {
+    // 如果菜单已存在，先移除
+    if (this.menuNode != null) {
+      this.menuNode.active = true;
+      //   this.menuNode.removeAllChildren();
+      //   // this._menuNode.removeFromParent();
+      //   // this._menuNode = null;
+    }
+
+    // 创建菜单
+    // this._menuNode = instantiate(this.menuPrefab);
+    const menuView = this.menuNode.getComponent(CellMenuView);
+
+    if (menuView) {
+      // 获取可用的塔类型
+      const availableTowers = [
+        TowerType.ARROW,
+        TowerType.MAGIC,
+        TowerType.CANNON,
+        TowerType.FREEZE,
+      ];
+
+      // 设置菜单
+      menuView.setup(row, col, availableTowers);
+
+      //   // 将菜单添加到场景中
+      //   this.node.addChild(this.menuNode);
+
+      // 监听点击其他地方关闭菜单
+      const closeHandler = () => {
+        if (this.menuNode && this.menuNode.active) {
+          this.menuNode.active = false;
+          this.node.parent?.off(Node.EventType.TOUCH_END, closeHandler);
+        }
+      };
+
+      this.scheduleOnce(() => {
+        this.node.parent?.on(Node.EventType.TOUCH_END, closeHandler);
+      }, 0.1);
+    }
   }
 
   loadGame() {
