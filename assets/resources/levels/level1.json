@@ -6,6 +6,10 @@
   "initialGold": 100,
   "initialLife": 10,
   "background": "mnhUb1750671908801/spriteFrame",
+  "startCol": 3,
+  "startRow": 8,
+  "endCol": 12,
+  "endRow": 3,
   "holds": [
     {"row": 7, "col": 2},
     {"row": 6, "col": 2},
@@ -56,7 +60,8 @@
       {"row": 3, "col": 8},
       {"row": 3, "col": 9},
       {"row": 3, "col": 10},
-      {"row": 3, "col": 11}
+      {"row": 3, "col": 11},
+      {"row": 3, "col": 12}
     ]
   ],
   "waves": [
@@ -65,8 +70,9 @@
       "count": 10,
       "interval": 1.5,
       "hp": 100,
-      "speed": 1.0,
-      "reward": 10
+      "speed": 2.0,
+      "reward": 10,
+      "delay": 1.0
     }
   ]
 }

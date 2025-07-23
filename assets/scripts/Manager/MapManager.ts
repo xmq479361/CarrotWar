@@ -127,7 +127,10 @@ export class MapManager {
    * @returns [x, y] 世界坐标
    */
   getLocationVec2(col: number, row: number): Vec2 {
-    return new Vec2(col * this._cellWidth, row * this._cellHeight);
+    return new Vec2(
+      col * this._cellWidth + this._cellWidth / 2,
+      row * this._cellHeight + this._cellHeight / 2
+    );
   }
   /**
    * 获取指定格子的世界坐标（左下角）
@@ -136,7 +139,11 @@ export class MapManager {
    * @returns [x, y] 世界坐标
    */
   getLocationVec3(col: number, row: number): Vec3 {
-    return new Vec3(col * this._cellWidth, row * this._cellHeight, 0);
+    return new Vec3(
+      col * this._cellWidth + this._cellWidth / 2,
+      row * this._cellHeight + this._cellHeight / 2,
+      0
+    );
   }
   /**
    * 获取指定格子的世界坐标（中心点）

@@ -1,6 +1,7 @@
 import { _decorator, Component, Node, tween, Vec2, Vec3 } from "cc";
 import { Point } from "./MapConfig";
 import { MapManager } from "../Manager/MapManager";
+import { MonsterManager } from "../Manager/MonsterManager";
 const { ccclass, property } = _decorator;
 
 @ccclass("Move")
@@ -14,33 +15,88 @@ export class Move extends Component {
 
   protected start(): void {
     console.log("Move start: ", this.node.position);
-    this.setPoint(new Point(1, 1));
-    this.checkToMove();
+    // this.setPoint(1, 1);
+    // this.checkToMove();
     // this.scheduleOnce(() => {
     //   this.moveTo(nextTarget);
     // }, 1);
   }
 
-  setPoint(point: Point) {
-    this.node.position = MapManager.Instance.getLocationVec2(
-      point.col,
-      point.row
-    ).toVec3();
+  setPoint(col: number, row: number) {
+    // console.log(
+    //   "setPoint: ",
+    //   col,
+    //   "x",
+    //   row,
+    //   MapManager.Instance.getLocationVec2(col, row)
+    // );
+    this.node.position = MapManager.Instance.getLocationVec2(col, row).toVec3();
   }
   setTarget(targets: Point[]) {
     this.targets = targets;
     this.checkToMove();
   }
 
+  moveByTargets(targets: Point[]) {
+    if (targets.length == 0) {
+      this._isMoving = false;
+      return;
+    }
+    this._isMoving = true;
+    let tw = tween(this.node);
+
+    let fromPos = this.node.position;
+    for (let i = 0; i < targets.length; i++) {
+      let target = targets[i];
+      let targetXY = MapManager.Instance.getLocationVec3(
+        target.col,
+        target.row
+      );
+      let dir = targetXY.clone().subtract(fromPos);
+      tw = tw.to(dir.length() / this.speed, { position: targetXY });
+    }
+    tw.call(() => {
+      this._isMoving = false;
+      this.unscheduleAllCallbacks();
+      this.node.removeFromParent();
+      MonsterManager.Instance.recycleMonster(this.node);
+      //   this.node.destroy();
+      console.log("Move end: ", this.node.position);
+    }).start();
+    // this.targets.push(targets);
+    // this._isMoving = true;
+    // let targetXY = MapManager.Instance.getLocationVec3(
+    //   nextTarget.col,
+    //   nextTarget.row
+    // );
+    // let dir = targetXY.clone().subtract(this.node.position);
+    // tween(this.node)
+    //   .to(dir.length() / this.speed, { position: targetXY })
+    //   .call(() => {
+    //     this._isMoving = false;
+    //     this.checkToMove();
+    //     console.log("Move end: ", this.node.position);
+    //   })
+    //   .start();
+  }
   addTarget(target: Point) {
     this.targets.push(target);
     this.checkToMove();
   }
+  isMoving() {
+    return this._isMoving;
+  }
 
-  checkToMove(): boolean {
+  checkToMove(fromPrev: boolean = false): boolean {
     if (this._isMoving) return false;
     if (this.targets.length == 0) {
       this._isMoving = false;
+      if (fromPrev) {
+        console.log("Move end: ", this.node.position);
+        this.unscheduleAllCallbacks();
+        this.node.removeFromParent();
+        MonsterManager.Instance.recycleMonster(this.node);
+      }
       return false;
     }
     let nextTarget = this.targets.shift();
@@ -58,8 +114,7 @@ export class Move extends Component {
       .to(dir.length() / this.speed, { position: targetXY })
       .call(() => {
         this._isMoving = false;
-        this.checkToMove();
-        console.log("Move end: ", this.node.position);
+        this.checkToMove(true);
       })
       .start();
     return true;
@@ -98,10 +153,10 @@ export class Move extends Component {
   //       .start();
   //     return;
   //   }
-  startMove() {
-    this._isMoving = true;
-  }
-  stopMove() {
-    this._isMoving = false;
-  }
+  //   startMove() {
+  //     this._isMoving = true;
+  //   }
+  //   stopMove() {
+  //     this._isMoving = false;
+  //   }
 }

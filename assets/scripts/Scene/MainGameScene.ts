@@ -14,8 +14,12 @@ import {
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
 import { GameManager } from "../Manager/GameManager";
-import { EventManager } from "../Manager/EventManager";
+import { EventManager, EventType } from "../Manager/EventManager";
 import { CellView } from "../View/CellView";
+import { GameState } from "../Data/GameDef";
+import { MonsterManager } from "../Manager/MonsterManager";
+import { Move } from "../Model/Move";
+import { WaveConfig } from "../Model/MapConfig";
 
 const { ccclass, property } = _decorator;
 
@@ -39,28 +43,41 @@ export class MainGameScene extends Component {
   @property(Prefab)
   towerPrefab: Prefab = null!;
 
-  @property(Node)
-  monsterContainer: Node = null!;
-  @property(Prefab)
-  monsterPrefab: Prefab = null!;
-
   @property(String)
   currentLevel: string = "level1";
+  /// 记录当前时间, 暂停和恢复时间
+  private _currentRunTime: number = 0;
+  private gameState: GameState = GameState.LOADING;
 
   private _cellViews: Array<any | null>[] = [];
 
   private _selectedCell: CellView | null = null;
 
   protected start(): void {
-    this.initializeMap();
     input.on(Input.EventType.TOUCH_START, this.onTouch, this);
+    this.loadGame();
   }
 
   protected onDestroy(): void {
     input.off(Input.EventType.TOUCH_START, this.onTouch, this);
   }
 
+  protected update(dt: number): void {
+    if (this.gameState !== GameState.PLAYING) {
+      return;
+    }
+    this._currentRunTime += dt;
+    // MonsterManager.Instance.update(dt);
+    // if (this._currentRunTime > 1) {
+    //   this._currentRunTime = 0;
+    //   GameManager.Instance.update();
+    // }
+  }
+
   onTouch(event: EventTouch) {
+    if (this.gameState !== GameState.PLAYING) {
+      return;
+    }
     let position = this.mapContainer
       .getComponent(UITransform)
       .convertToNodeSpaceAR(event.getUILocation().toVec3());
@@ -92,7 +109,24 @@ export class MainGameScene extends Component {
     GameManager.Instance.onCellClicked(row, col);
   }
 
-  initializeMap() {
+  loadGame() {
+    this.loadMap()
+      .then(() => {
+        this.initializeMap();
+        // this.initializeMonsterSpawners();
+        // this.initializeTowers();
+        // this.initializeMonsters();
+        this.gameState = GameState.PLAYING;
+        EventManager.Instance.emit(EventType.GameStart);
+        // this.gameState = GameState.READY;
+      })
+      .catch((error) => {
+        console.error("初始化游戏失败:", error);
+      });
+  }
+
+  loadMap(): Promise<boolean> {
+    this.gameState = GameState.LOADING;
     console.log("initializeMap");
     // 获取地图容器尺寸
     const transform = this.mapContainer.getComponent(UITransform);
@@ -105,19 +139,12 @@ export class MainGameScene extends Component {
     MapManager.Instance.setSize(transform.width, transform.height);
 
     console.log("initGame: ", this.currentLevel);
-    GameManager.Instance.initGame(this.currentLevel)
-      .then(() => {
-        this.createCellViews();
-      })
-      .catch((error) => {
-        console.error("初始化游戏失败:", error);
-      });
+    return GameManager.Instance.initGame(this.currentLevel);
   }
 
-  createCellViews() {
+  initializeMap() {
     // 清除现有格子
     this.towerContainer.removeAllChildren();
-    this.monsterContainer.removeAllChildren();
     this.roadContainer.removeAllChildren();
     this._cellViews = [];
 
@@ -151,23 +178,51 @@ export class MainGameScene extends Component {
             const cellView = cellNode.getComponent(CellView);
             if (cellView) {
               cellView.init(row, col, cellModel);
+              this._cellViews[row][col] = cellView;
+              this.towerContainer.addChild(cellNode);
             }
-            this._cellViews[row][col] = cellView;
-            // 添加到容器
-            this.towerContainer.addChild(cellNode);
-            continue;
           } else if (cellModel.path) {
             const roadNode = instantiate(this.roadPrefab);
             roadNode.setPosition(MapManager.Instance.getCellPosition(row, col));
-            // this._cellViews[row][col] = roadNode;
             this.roadContainer.addChild(roadNode);
           }
         }
-        this._cellViews[row][col] = null;
       }
     }
 
     // 触发格子创建完成事件
     EventManager.Instance.emit("cells-created", this._cellViews);
   }
+
+  //   _waves: WaveConfig[] = [];
+  //   initializeMonsterSpawners() {
+  //     this._waves = GameManager.Instance.mapConfig.waves;
+  //     this.unscheduleAllCallbacks();
+  //     this.startSpawningMonsters();
+  //   }
+
+  //   startSpawningMonsters() {
+  //     if (this._waves.length === 0) {
+  //       return;
+  //     }
+  //     let wave = this._waves.shift();
+  //     if (wave) {
+  //       this.schedule(
+  //         () => {
+  //           let monster = instantiate(this.monsterPrefab);
+  //           let move = monster.getComponent(Move);
+  //           if (move) {
+  //             move.setPoint(wave.startRow, wave.startCol);
+  //             //   终点
+  //             move.setTarget(GameManager.Instance.mapConfig.paths[0]);
+  //             this.monsterContainer.addChild(monster);
+  //           }
+  //           // spawner.getComponent(MonsterSpawner).init(wave);
+  //         },
+  //         wave.interval,
+  //         wave.count - 1,
+  //         wave.delay
+  //       );
+  //     }
+  //   }
 }

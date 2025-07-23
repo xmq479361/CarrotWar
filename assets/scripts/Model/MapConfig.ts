@@ -67,6 +67,9 @@ export interface WaveConfig {
   hp: number; // 生命值
   speed: number; // 移动速度
   reward: number; // 击败奖励
+  delay: number; // 回合开始等待时间(秒)
+  startRow: number; // 起点行
+  startCol: number; // 起点列
 }
 // /**
 //  * 地图配置
@@ -112,4 +115,8 @@ export class MapConfig {
   holds: Point[] = [];
   // 敌人路径点，可以有多条路径
   paths: Point[][];
+  // 默认起点列
+  startRow: number;
+  // 默认起点行
+  startCol: number;
 }
