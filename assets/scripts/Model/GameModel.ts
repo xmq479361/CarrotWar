@@ -1,17 +1,15 @@
-import { MapManager } from "./MapManager";
-import { EventManager } from "./EventManager";
-import { MapConfig, Point, WaveConfig } from "../Model/MapConfig";
-import { CellModel } from "../Model/CellModel";
-import { TowerConfigs, TowerModel, TowerType } from "../Model/TowerModel";
+import { MapConfig, Point, WaveConfig } from "./MapConfig";
+import { CellModel } from "./CellModel";
+import { EventManager } from "../Manager/EventManager";
+import { MapManager } from "../Manager/MapManager";
+import { TowerType, TowerModel, TowerConfigs } from "./TowerModel";
 
 export interface BuildResult {
   success: boolean;
   message: string;
 }
 
-export class GameManager {
-  private static _instance: GameManager;
-  private _isGameStarted: boolean = false;
+export class GameModel {
   private _mapConfig: MapConfig;
   private _gold: number = 0;
   private _life: number = 0;
@@ -19,13 +17,13 @@ export class GameManager {
   private _enemiesAlive: number = 0;
   private _cells: CellModel[][] = [];
 
-  private constructor() {}
+  constructor(mapConfig: MapConfig) {
+    this._mapConfig = mapConfig;
+    this._gold = mapConfig.initialGold;
+    this._life = mapConfig.initialLife;
 
-  static get Instance(): GameManager {
-    if (!GameManager._instance) {
-      GameManager._instance = new GameManager();
-    }
-    return GameManager._instance;
+    // 初始化格子模型
+    this.initCells();
   }
 
   getCellModel(row: number, col: number): CellModel | null {
@@ -41,30 +39,6 @@ export class GameManager {
     return this.mapConfig.waves.length;
   }
 
-  /**
-   * 初始化游戏
-   */
-  async initGame(level: string): Promise<boolean> {
-    try {
-      console.log("开始初始化游戏");
-      this._mapConfig = await MapManager.Instance.loadMap(level);
-      console.log("地图配置加载完成", this._mapConfig);
-
-      this._gold = this._mapConfig.initialGold;
-      this._life = this._mapConfig.initialLife;
-
-      // 初始化格子模型
-      this.initCells();
-      // 注册事件
-      this.registerEvents();
-
-      console.log("游戏初始化完成");
-      return true;
-    } catch (error) {
-      console.error("初始化地图失败:", error);
-      throw error;
-    }
-  }
   //   get _cells() {
   //     return MapManager.Instance.cells;
   //   }
@@ -85,153 +59,20 @@ export class GameManager {
     }
     this.mapConfig.holds.forEach((hold) => {
       const cell = this.getCell(hold.row, hold.col);
-      if (cell) {
+      if (cell.buildable) {
         cell.buildable = true;
       }
     });
-    this.mapConfig.paths.forEach((path) => {
-      path.forEach((cell) => {
-        const cellModel = this.getCell(cell.row, cell.col);
-        if (cellModel) {
-          cellModel.path = true;
-        }
-      });
-    });
+    // this.mapConfig.paths.forEach((path) => {
+    //   path.forEach((cell) => {
+    //     const cellModel = this.getCell(cell.row, cell.col);
+    //     if (cellModel) {
+    //       cellModel.path = true;
+    //     }
+    //   });
+    // })
   }
 
-  /**
-   * 注册事件
-   */
-  private registerEvents() {
-    // 监听格子点击事件
-    EventManager.Instance.on("cell-clicked", this.onCellClicked.bind(this));
-
-    // 监听游戏开始事件
-    EventManager.Instance.on("game-start", this.startGame.bind(this));
-
-    // 监听游戏暂停事件
-    EventManager.Instance.on("game-pause", this.pauseGame.bind(this));
-
-    // 监听游戏结束事件
-    EventManager.Instance.on("game-over", this.gameOver.bind(this));
-  }
-
-  /**
-   * 处理格子点击事件
-   * @param row 行
-   * @param col 列
-   */
-  onCellClicked(row: number, col: number) {
-    if (!this._mapConfig) return;
-    let cell = this.getCell(row, col);
-    console.log(`点击格子: (${row}, ${col})`, cell);
-
-    // 检查是否可以在该格子上建造
-    if (this.isBuildable(col, row)) {
-      // 触发建造UI显示事件
-      EventManager.Instance.emit("show-build-ui", row, col);
-    } else {
-      console.log("该位置不可建造");
-    }
-  }
-
-  /**
-   * 处理点击坐标
-   * @param x X坐标
-   * @param y Y坐标
-   */
-  handleClickPosition(x: number, y: number) {
-    // 将坐标转换为格子位置
-    const [col, row] = MapManager.Instance.getLocationFromPoint(x, y);
-
-    // 触发格子点击事件
-    this.onCellClicked(row, col);
-  }
-
-  /**
-   * 开始游戏
-   */
-  startGame() {
-    if (!this._mapConfig) return;
-
-    this._isGameStarted = true;
-    console.log("游戏开始");
-
-    // 开始第一波敌人
-    this.startNextWave();
-  }
-
-  /**
-   * 暂停游戏
-   */
-  pauseGame() {
-    this._isGameStarted = false;
-    console.log("游戏暂停");
-  }
-
-  /**
-   * 游戏结束
-   * @param isWin 是否胜利
-   */
-  gameOver(isWin: boolean) {
-    this._isGameStarted = false;
-    console.log(`游戏结束，${isWin ? "胜利" : "失败"}`);
-
-    // 触发游戏结束UI显示事件
-    EventManager.Instance.emit("show-game-over-ui", isWin);
-  }
-
-  /**
-   * 开始下一波敌人
-   */
-  startNextWave() {
-    if (!this._mapConfig || !this._isGameStarted) return;
-
-    const currentWave = this.currWave;
-    if (currentWave >= this.totalWaves) {
-      // 所有波次完成，游戏胜利
-      this.gameOver(true);
-      return;
-    }
-
-    console.log(`开始第 ${currentWave + 1} 波敌人`);
-
-    // 触发波次开始事件
-    EventManager.Instance.emit("wave-start", currentWave);
-
-    // 生成敌人
-    this.startWave();
-  }
-
-  /**
-   * 建造防御塔
-   * @param row 行
-   * @param col 列
-   * @param towerType 防御塔类型
-   */
-  buildTower(row: number, col: number, towerType: number) {
-    if (!this._mapConfig) return false;
-
-    // 委托给 GameModel 处理具体的建造逻辑
-    const result = this.tryBuildTower(row, col, towerType);
-
-    if (result.success) {
-      // 触发防御塔建造事件
-      EventManager.Instance.emit("tower-built", row, col, towerType);
-      console.log(`在 (${row}, ${col}) 建造了类型为 ${towerType} 的防御塔`);
-    } else {
-      console.log(result.message);
-    }
-
-    return result.success;
-  }
-
-  /**
-   * 游戏是否已开始
-   */
-  get isGameStarted(): boolean {
-    return this._isGameStarted;
-  }
   /**
    * 获取格子模型
    * @param row 行

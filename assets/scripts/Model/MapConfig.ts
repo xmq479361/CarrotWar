@@ -22,14 +22,20 @@
 // }
 
 export class Point {
-  x: number = 0;
-  y: number = 0;
+  col: number = 0;
+  row: number = 0;
   canHold: boolean = false;
 
-  constructor(x: number, y: number, canHold: boolean) {
-    this.x = x;
-    this.y = y;
-    this.canHold = canHold;
+  constructor(col: number, row: number) {
+    this.col = col;
+    this.row = row;
+  }
+
+  get x() {
+    return this.col;
+  }
+  get y() {
+    return this.row;
   }
 }
 
@@ -42,14 +48,14 @@ export class Monster {
   public reward: number = 0;
 }
 
-/**
- * 格子配置
- */
-export interface CellConfig {
-  type: number; // 格子类型：0-空地，1-道路，2-不可放置区域，3-起点，4-终点
-  buildable: boolean; // 是否可以建造防御塔
-  decoration?: number; // 装饰物ID，可选
-}
+// /**
+//  * 格子配置
+//  */
+// export interface CellConfig {
+//   type: number; // 格子类型：0-空地，1-道路，2-不可放置区域，3-起点，4-终点
+//   buildable: boolean; // 是否可以建造防御塔
+//   decoration?: number; // 装饰物ID，可选
+// }
 
 /**
  * 敌人波次配置
@@ -62,6 +68,21 @@ export interface WaveConfig {
   speed: number; // 移动速度
   reward: number; // 击败奖励
 }
+// /**
+//  * 地图配置
+//  */
+// export interface MapConfig {
+//     id: string;         // 地图ID
+//     name: string;       // 地图名称
+//     rows: number;       // 行数
+//     cols: number;       // 列数
+//     cells: CellConfig[][]; // 格子配置
+//     paths: Point[][]; // 敌人路径点，可以有多条路径
+//     waves: WaveConfig[]; // 敌人波次配置
+//     initialGold: number; // 初始金币
+//     initialLife: number; // 初始生命值
+//     background: string;  // 背景图片资源路径
+// }
 
 export class MapConfig {
   /// 关卡编号
@@ -91,6 +112,4 @@ export class MapConfig {
   holds: Point[] = [];
   // 敌人路径点，可以有多条路径
   paths: Point[][];
-  // 全部的格子.
-  cells: Point[][];
 }

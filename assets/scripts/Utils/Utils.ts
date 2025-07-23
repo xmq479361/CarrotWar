@@ -18,7 +18,6 @@ export class Utils {
         callback(null);
         return;
       }
-
       // 验证资源类型(基于.meta识别的类型[<sup>1</sup>](https://www.cnblogs.com/ybgame/p/14260152.html))
       if (asset instanceof JsonAsset) {
         console.warn("loadLocalJson result:", asset.json);

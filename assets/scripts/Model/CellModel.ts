@@ -4,6 +4,8 @@ export class CellModel {
   private _row: number;
   private _col: number;
   private _type: number | null;
+  /// 是否是路径
+  private _path: boolean = false;
   /// 是否可以建造
   private _buildable: boolean = false;
   /// 装饰
@@ -14,6 +16,13 @@ export class CellModel {
   constructor(row: number, col: number) {
     this._row = row;
     this._col = col;
+  }
+
+  set path(value: boolean) {
+    this._path = value;
+  }
+  get path(): boolean {
+    return this._path;
   }
 
   set type(value: number) {

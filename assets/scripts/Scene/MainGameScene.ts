@@ -9,6 +9,8 @@ import {
   input,
   Input,
   EventTouch,
+  Sprite,
+  SpriteFrame,
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
 import { GameManager } from "../Manager/GameManager";
@@ -21,33 +23,73 @@ const { ccclass, property } = _decorator;
 export class MainGameScene extends Component {
   @property(Node)
   mapContainer: Node = null!;
-
   @property(Prefab)
   cellPrefab: Prefab = null!;
+
+  @property(Node)
+  bg: Node = null!;
+
+  @property(Node)
+  roadContainer: Node = null!;
+  @property(Prefab)
+  roadPrefab: Prefab = null!;
+
+  @property(Node)
+  towerContainer: Node = null!;
+  @property(Prefab)
+  towerPrefab: Prefab = null!;
+
+  @property(Node)
+  monsterContainer: Node = null!;
+  @property(Prefab)
+  monsterPrefab: Prefab = null!;
 
   @property(String)
   currentLevel: string = "level1";
 
-  private _cellViews: Node[][] = [];
+  private _cellViews: Array<any | null>[] = [];
 
-  start() {
+  private _selectedCell: CellView | null = null;
+
+  protected start(): void {
     this.initializeMap();
     input.on(Input.EventType.TOUCH_START, this.onTouch, this);
   }
 
-  destroy(): boolean {
+  protected onDestroy(): void {
     input.off(Input.EventType.TOUCH_START, this.onTouch, this);
-    return super.destroy();
   }
 
   onTouch(event: EventTouch) {
     let position = this.mapContainer
       .getComponent(UITransform)
       .convertToNodeSpaceAR(event.getUILocation().toVec3());
-    console.log("position: ", position);
-    // let [col, row] = MapManager.Instance.getLocationFromPoint(position.x, position.y);
-    // console.log("point:", col, "x", row);
-    GameManager.Instance.handleClickPosition(position.x, position.y);
+    // 将坐标转换为格子位置
+    let [col, row] = MapManager.Instance.getLocationFromPoint(
+      position.x,
+      position.y
+    );
+    console.log("position: ", position, "point:", col, "x", row);
+    let cellView = this._cellViews[row][col];
+    if (!cellView) {
+      console.error("cellView is null");
+      return;
+    }
+    if (cellView.path) {
+      console.error("cellView is path");
+      return;
+    }
+    cellView.selected = !cellView.isSelected;
+    if (this._selectedCell) {
+      if (cellView === this._selectedCell) {
+        this._selectedCell = null;
+        return;
+      }
+      this._selectedCell.selected = false;
+    }
+    this._selectedCell = cellView;
+    // GameManager.Instance.handleClickPosition(position.x, position.y);
+    GameManager.Instance.onCellClicked(row, col);
   }
 
   initializeMap() {
@@ -74,11 +116,25 @@ export class MainGameScene extends Component {
 
   createCellViews() {
     // 清除现有格子
-    this.mapContainer.removeAllChildren();
+    this.towerContainer.removeAllChildren();
+    this.monsterContainer.removeAllChildren();
+    this.roadContainer.removeAllChildren();
     this._cellViews = [];
 
     const mapConfig = GameManager.Instance.mapConfig;
-
+    if (!mapConfig) {
+      console.error("地图配置为空");
+      return;
+    }
+    if (this.bg && mapConfig.background) {
+      resources.load(mapConfig.background, SpriteFrame, (err, spriteFrame) => {
+        if (err) {
+          console.error("加载背景图失败:", err);
+          return;
+        }
+        this.bg.getComponent(Sprite).spriteFrame = spriteFrame;
+      });
+    }
     const rows = mapConfig.rows;
     const cols = mapConfig.cols;
 
@@ -88,17 +144,26 @@ export class MainGameScene extends Component {
 
       for (let col = 0; col < cols; col++) {
         const cellModel = GameManager.Instance.getCellModel(row, col);
-        const cellNode = instantiate(this.cellPrefab);
-
-        // 初始化格子视图
-        const cellView = cellNode.getComponent(CellView);
-        if (cellView) {
-          cellView.init(row, col, cellModel);
+        if (cellModel) {
+          if (cellModel.buildable == true) {
+            const cellNode = instantiate(this.cellPrefab);
+            // 初始化格子视图
+            const cellView = cellNode.getComponent(CellView);
+            if (cellView) {
+              cellView.init(row, col, cellModel);
+            }
+            this._cellViews[row][col] = cellView;
+            // 添加到容器
+            this.towerContainer.addChild(cellNode);
+            continue;
+          } else if (cellModel.path) {
+            const roadNode = instantiate(this.roadPrefab);
+            roadNode.setPosition(MapManager.Instance.getCellPosition(row, col));
+            // this._cellViews[row][col] = roadNode;
+            this.roadContainer.addChild(roadNode);
+          }
         }
-
-        // 添加到容器
-        this.mapContainer.addChild(cellNode);
-        this._cellViews[row][col] = cellNode;
+        this._cellViews[row][col] = null;
       }
     }
 

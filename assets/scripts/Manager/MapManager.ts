@@ -1,7 +1,7 @@
 import { MapConfig, Point } from "../Model/MapConfig";
 import { Utils } from "../Utils/Utils";
 import { CellModel } from "../Model/CellModel";
-import { Vec3 } from "cc";
+import { Vec2, Vec3 } from "cc";
 
 /// 地图管理
 export class MapManager {
@@ -13,10 +13,10 @@ export class MapManager {
   private _cellHeight: number = 0;
   private _mapConfig: MapConfig | null = null;
 
-  static _Instance: MapManager;
+  static _Instance: MapManager = null;
 
   static get Instance() {
-    if (!MapManager._Instance) {
+    if (MapManager._Instance == null) {
       console.log("MapManager init: ");
       MapManager._Instance = new MapManager();
     }
@@ -72,6 +72,7 @@ export class MapManager {
     this._cols = cols;
     this._cellWidth = this.gridWidth / cols;
     this._cellHeight = this.gridHeight / rows;
+    console.log("MapManager: ", this._cellWidth, this._cellHeight);
   }
 
   getCellPosition(row: number, col: number): Vec3 {
@@ -119,6 +120,24 @@ export class MapManager {
     return [col * this._cellWidth, row * this._cellHeight];
   }
 
+  /**
+   * 获取指定格子的世界坐标（左下角）
+   * @param col 列
+   * @param row 行
+   * @returns [x, y] 世界坐标
+   */
+  getLocationVec2(col: number, row: number): Vec2 {
+    return new Vec2(col * this._cellWidth, row * this._cellHeight);
+  }
+  /**
+   * 获取指定格子的世界坐标（左下角）
+   * @param col 列
+   * @param row 行
+   * @returns [x, y] 世界坐标
+   */
+  getLocationVec3(col: number, row: number): Vec3 {
+    return new Vec3(col * this._cellWidth, row * this._cellHeight, 0);
+  }
   /**
    * 获取指定格子的世界坐标（中心点）
    * @param col 列
