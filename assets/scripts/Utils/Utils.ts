@@ -1,6 +1,16 @@
-import { resources, JsonAsset } from "cc";
+import { resources, JsonAsset, Sprite, SpriteFrame } from "cc";
 
 export class Utils {
+
+  static setSpriteFrame(sprite: Sprite, spritePath: string) {
+resources.load(spritePath, SpriteFrame,  (error: Error, asset: SpriteFrame) => {
+      if (error) {
+        console.error(`Sprite加载失败: ${spritePath}`, error);
+        return;
+      }
+      sprite.spriteFrame = asset;
+    });
+  }
   /**
    * 加载本地JSON配置文件的工具函数
    * @param jsonFilePath 相对于assets/resources的路径（不含后缀名）

@@ -29,27 +29,13 @@ export class MonsterView extends Component {
 
   protected start(): void {
     // console.log("Move start: ", this.node.position);
-    // 注册游戏暂停和恢复事件
-    EventManager.Instance.on(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.on(EventType.GameResume, this.onGameResume);
-    // 注册单个碰撞体的回调函数
-    let collider = this.getComponentInChildren(Collider2D);
-    if (collider) {
-      collider.on(Contact2DType.BEGIN_CONTACT, this.onHit, this);
-    }
   }
 
+  
   protected onDestroy(): void {
-    let collider = this.getComponentInChildren(Collider2D);
-    if (collider) {
-      collider.off(Contact2DType.BEGIN_CONTACT, this.onHit, this);
-    }
-    // 取消事件监听
-    EventManager.Instance.off(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.off(EventType.GameResume, this.onGameResume);
   }
 
-  onHit(selfCollider: Collider2D, otherCollider: Collider2D, contact) {
+  onHit(selfCollider: Collider2D, otherCollider: Collider2D) {
     console.log(
       "Monster onHit",
       selfCollider,
@@ -57,11 +43,18 @@ export class MonsterView extends Component {
       otherCollider.node.name,
       otherCollider.tag
     );
-    this.onDismiss();
+this.onDismiss();
   }
 
   onDismiss() {
     EventManager.Instance.emit(EventType.MonsterDie, this.node);
+    // 取消事件监听
+    EventManager.Instance.off(EventType.GamePause, this.onGamePause);
+    EventManager.Instance.off(EventType.GameResume, this.onGameResume);
+    let collider = this.getComponentInChildren(Collider2D);
+    if (collider) {
+      collider.off(Contact2DType.BEGIN_CONTACT, this.onHit, this);
+    }
   }
   // 游戏暂停处理
   onGamePause() {
@@ -82,13 +75,21 @@ export class MonsterView extends Component {
 
   setup(col: number, row: number, monsterConfig: MonsterConfig) {
     this.node.position = MapManager.Instance.getLocationVec3(col, row);
-    this.speed = monsterConfig.speed;
+    this.speed = monsterConfig.speed * 100;
     this.monsterConfig = monsterConfig;
     // TODO: 这里应该是根据配置来设置图片
-    Utils.setSpriteFrame(
+Utils.setSpriteFrame(
       this.node.getComponentInChildren(Sprite),
       monsterConfig.spritePath
     );
+    // 注册游戏暂停和恢复事件
+    EventManager.Instance.on(EventType.GamePause, this.onGamePause);
+    EventManager.Instance.on(EventType.GameResume, this.onGameResume);
+    // 注册单个碰撞体的回调函数
+    let collider = this.getComponentInChildren(Collider2D);
+    if (collider) {
+  collider.on(Contact2DType.BEGIN_CONTACT, this.onHit, this);
+    }
   }
 
   // setPoint(col: number, row: number) {

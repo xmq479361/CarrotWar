@@ -8,8 +8,10 @@ import {
   Label,
   Node,
   Sprite,
+  UITransform,
 } from "cc";
 import { EventManager, EventType } from "../Manager/EventManager";
+import { MapManager } from "../Manager/MapManager";
 const { ccclass, property } = _decorator;
 
 @ccclass("CarrotView")
@@ -30,27 +32,29 @@ export class CarrotView extends Component {
     let collider = this.getComponentInChildren(Collider2D);
     if (collider) {
       console.log("collider", collider);
-      collider.on(Contact2DType.BEGIN_CONTACT, this.onHit, this);
+      collider.on(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
+    }
+    let uiTransform = this.getComponent(UITransform);
+    if (uiTransform) {
+      uiTransform.setContentSize(MapManager.Instance.cellWidth, MapManager.Instance.cellHeight);
     }
   }
 
   protected onDestroy(): void {
     let collider = this.getComponentInChildren(Collider2D);
     if (collider) {
-      collider.off(Contact2DType.BEGIN_CONTACT, this.onHit, this);
+  collider.off(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
     }
   }
 
-  onHit(
+  onContactEnter(
     selfCollider: Collider2D,
     otherCollider: Collider2D,
-    contact: IPhysics2DContact | null
   ) {
     console.log(
       "onHit",
       selfCollider,
       otherCollider,
-      otherCollider.node.name,
       otherCollider.tag
     );
     this._hp--;

@@ -14,6 +14,7 @@ export class MonsterManager {
   monsterPool: NodePool = new NodePool();
 
   newMonster(monsterPrefab: Prefab) {
+      return instantiate(monsterPrefab);
     let monster = this.monsterPool.get();
     if (!monster) {
       console.log("monster is null");

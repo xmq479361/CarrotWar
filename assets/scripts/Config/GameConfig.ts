@@ -268,7 +268,7 @@ export class GameConfigs {
       speed: 1.0,
       reward: 10,
       damage: 1,
-      spritePath: "monsters/rabbit",
+  spritePath: "Monsters/Monster1/spriteFrame",
       animationPath: "animations/rabbit"
     },
     {

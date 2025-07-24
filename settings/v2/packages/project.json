@@ -27,13 +27,15 @@
     ],
     "collisionMatrix": {
       "0": 31,
-      "1": 25,
-      "2": 17,
-      "3": 3,
-      "4": 7
+      "1": 31,
+      "2": 31,
+      "3": 31,
+      "4": 31
     },
     "gravity": {
-      "y": -10
-    }
-  }
+      "y": 0
+    },
+    "allowSleep": false
+  },
+  "custom_joint_texture_layouts": []
 }

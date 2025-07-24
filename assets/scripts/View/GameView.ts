@@ -150,14 +150,15 @@ export class GameView extends Component {
           }
           
           // 障碍物
-          if (cellModel.obstacle) {
-            const obstacleNode = instantiate(this.obstaclePrefab);
-            const obstacleView = obstacleNode.getComponent(ObstacleView);
-            obstacleNode.setPosition(cellPosition);
-            this.obstacleContainer.addChild(obstacleNode);
-            cellView.obstacle = obstacleView;
-          }
-        } else if (cellModel.path) {
+  // if (cellModel.obstacle) {
+  //           const obstacleNode = instantiate(this.obstaclePrefab);
+  //           const obstacleView = obstacleNode.getComponent(ObstacleView);
+  //           obstacleNode.setPosition(cellPosition);
+  //           this.obstacleContainer.addChild(obstacleNode);
+  //           cellView.obstacle = obstacleView;
+  //         }
+    } else 
+if (cellModel.path) {
           const roadNode = instantiate(this.roadPrefab);
           roadNode.setPosition(cellPosition);
           this.roadContainer.addChild(roadNode);
@@ -257,15 +258,15 @@ export class GameView extends Component {
     if (!cellView) return false;
     
     // 调用GameManager升级塔
-    const result = GameManager.Instance.upgradeTower(row, col);
+// const result = GameManager.Instance.upgradeTower(row, col);
     
-    if (result) {
-      // 更新视图
-      cellView.updateTower();
-      this.hideBuildMenu();
-    }
-    
-    return result;
+//     if (result) {
+//       // 更新视图
+  cellView.updateTower();
+  this.hideBuildMenu();
+    // }
+    return true;
+// return result;
   }
 
   /**

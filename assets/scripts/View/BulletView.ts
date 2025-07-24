@@ -77,7 +77,7 @@ export class BulletView extends Component {
     hitTarget() {
         // 发射命中事件
         if (this.targetNode && this.targetNode.isValid) {
-            EventManager.Instance.emit(EventType.MonsterHit, {
+    EventManager.Instance.emit(EventType.BulletHit, {
                 targetNode: this.targetNode,
                 damage: this.attack,
                 damageType: this.damageType,

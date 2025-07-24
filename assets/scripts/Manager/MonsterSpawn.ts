@@ -69,21 +69,21 @@ export class MonsterSpawn extends Component {
   }
 
   registerEvents() {
-    EventManager.Instance.on(EventType.GameStart, this.onGameStart);
-    EventManager.Instance.on(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.on(EventType.GameResume, this.onGameResume);
-    EventManager.Instance.on(EventType.GameOver, this.onGameOver);
-    EventManager.Instance.on(EventType.MonsterDie, this.onMonsterDied);
-    EventManager.Instance.on(EventType.WaveStarted, this.onStartNextWave);
+EventManager.Instance.on(EventType.GameStart, this.onGameStart.bind(this));
+EventManager.Instance.on(EventType.GamePause, this.onGamePause.bind(this));
+EventManager.Instance.on(EventType.GameResume, this.onGameResume.bind(this));
+EventManager.Instance.on(EventType.GameOver, this.onGameOver.bind(this));
+EventManager.Instance.on(EventType.MonsterDie, this.onMonsterDied.bind(this));
+EventManager.Instance.on(EventType.WaveStarted, this.onStartNextWave.bind(this));
   }
 
   unregisterEvents() {
-    EventManager.Instance.off(EventType.GameStart, this.onGameStart);
-    EventManager.Instance.off(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.off(EventType.GameResume, this.onGameResume);
-    EventManager.Instance.off(EventType.GameOver, this.onGameOver);
-    EventManager.Instance.off(EventType.MonsterDie, this.onMonsterDied);
-    EventManager.Instance.off(EventType.WaveStarted, this.onStartNextWave);
+EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
+    EventManager.Instance.off(EventType.GamePause, this.onGamePause.bind(this));
+    EventManager.Instance.off(EventType.GameResume, this.onGameResume.bind(this));
+    EventManager.Instance.off(EventType.GameOver, this.onGameOver.bind(this));
+    EventManager.Instance.off(EventType.MonsterDie, this.onMonsterDied.bind(this));
+    EventManager.Instance.off(EventType.WaveStarted, this.onStartNextWave.bind(this));
   }
 
   onGameStart() {
@@ -150,7 +150,7 @@ export class MonsterSpawn extends Component {
     console.log(`第 ${this._waveNo + 1} 波怪物已全部消灭`);
 
     // 触发波次结束事件
-    EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
+EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
 
     // 检查是否还有下一波
     if (this._waveNo + 1 < this._waves.length) {
@@ -165,12 +165,12 @@ export class MonsterSpawn extends Component {
         this.startNextWaveCountdown();
       } else {
         // 触发下一波准备就绪事件，等待玩家手动开始
-        EventManager.Instance.emit(EventType.WaveNexteady, this._waveNo);
+  EventManager.Instance.emit(EventType.WaveNextReady, this._waveNo);
       }
     } else {
       // 所有波次完成，游戏胜利
       console.log("所有波次完成");
-      EventManager.Instance.emit(EventType.GameWin);
+  EventManager.Instance.emit(EventType.GameWin);
     }
   }
 
@@ -260,18 +260,17 @@ export class MonsterSpawn extends Component {
     const monsterConfig = GameConfigs.getMonsterConfig(wave.enemyType);
 
     // 创建怪物实例
-    let monster = MonsterManager.Instance.newMonster(this.monsterPrefab);
+let monster = MonsterManager.Instance.newMonster(this.monsterPrefab);
 
     // 设置怪物属性
-    MonsterManager.Instance.setupMonster(monster, wave.enemyType, wave.hp);
+// MonsterManager.Instance.setupMonster(monster, wave.enemyType, wave.hp);
 
     // 设置怪物移动组件
     let monsterView = monster.getComponent(MonsterView);
     if (monsterView) {
       this.monsterContainer.addChild(monster);
-      monsterView.setPoint(startCol, startRow);
-      monsterView.speed = wave.speed * 100;
-      monsterView.setTarget(path);
+monsterView.setup(startCol, startRow, monsterConfig);
+      monsterView.setTarget([...path]);
 
       // 增加存活怪物计数
       this._aliveMonsters++;

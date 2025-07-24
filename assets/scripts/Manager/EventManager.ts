@@ -7,6 +7,7 @@ export enum EventType {
   GameResume = "GameResume",
   GameOver = "GameOver",
   GameRestart = "GameRestart",
+  GameWin = "GameWin",
   // 地图事件
   MapInit = "MapInit",
   MapUpdate = "MapUpdate",
@@ -27,8 +28,19 @@ export enum EventType {
   BulletUpdate = "BulletUpdate",
   BulletFire = "BulletFire",
   BulletHit = "BulletHit",
+  // 
+  WaveChanged = "WaveChanged",
+  WaveCompleted = "WaveCompleted",
+  WaveStarted = "WaveStarted",
+  WaveNextReady = "WaveNextReady",
   // 游戏UI事件
   UIUpdate = "UIUpdate",
+  GoldChanged = "GoldChanged",
+  LifeChanged = "LifeChanged",
+  BuildTower = "BuildTower",
+  UpgradeTower = "UpgradeTower",
+  DemolishTower = "DemolishTower",
+
   // 游戏音效事件
   SoundPlay = "SoundPlay",
   SoundStop = "SoundStop",
