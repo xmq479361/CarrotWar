@@ -44,7 +44,7 @@ export class GameManager {
   /**
    * 初始化游戏
    */
-  async initGame(level: string): Promise<boolean> {
+  async initGame(level: string): Promise<MapConfig> {
     try {
       console.log("开始初始化游戏");
       this._mapConfig = await MapManager.Instance.loadMap(level);
@@ -59,7 +59,7 @@ export class GameManager {
       this.registerEvents();
 
       console.log("游戏初始化完成");
-      return true;
+      return this._mapConfig;
     } catch (error) {
       console.error("初始化地图失败:", error);
       throw error;

@@ -1,8 +1,8 @@
 import { _decorator, Component, Node } from 'cc';
 const { ccclass, property } = _decorator;
 
-@ccclass('MonsterModel')
-export class MonsterModel extends Component {
+@ccclass('GameView')
+export class GameView extends Component {
     start() {
 
     }

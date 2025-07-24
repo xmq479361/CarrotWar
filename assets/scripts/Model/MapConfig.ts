@@ -68,8 +68,11 @@ export interface WaveConfig {
   speed: number; // 移动速度
   reward: number; // 击败奖励
   delay: number; // 回合开始等待时间(秒)
-  startRow: number; // 起点行
-  startCol: number; // 起点列
+  startRow: number; // 起点列
+  startCol: number; // 起点行
+  targetRow: number; // 终点列
+  targetCol: number; // 终点行
+  pathIndex: number; // 路径索引, 对应到MapConfig.paths中的索引
 }
 // /**
 //  * 地图配置
@@ -119,4 +122,8 @@ export class MapConfig {
   startRow: number;
   // 默认起点行
   startCol: number;
+  // 默认终点行
+  targetRow: number;
+  // 默认终点列
+  targetCol: number;
 }

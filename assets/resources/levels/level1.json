@@ -8,8 +8,8 @@
   "background": "mnhUb1750671908801/spriteFrame",
   "startCol": 3,
   "startRow": 8,
-  "endCol": 12,
-  "endRow": 3,
+  "targetCol": 11,
+  "targetRow": 3,
   "holds": [
     {"row": 7, "col": 2},
     {"row": 6, "col": 2},
@@ -70,9 +70,10 @@
       "count": 10,
       "interval": 1.5,
       "hp": 100,
-      "speed": 2.0,
+      "speed": 3.0,
       "reward": 10,
-      "delay": 1.0
+      "delay": 1.0,
+      "pathIndex": 0
     }
   ]
 }

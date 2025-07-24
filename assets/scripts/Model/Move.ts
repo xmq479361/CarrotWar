@@ -16,7 +16,7 @@ export class Move extends Component {
   private _currentTween: Tween<Node> | null = null;
 
   protected start(): void {
-    console.log("Move start: ", this.node.position);
+    // console.log("Move start: ", this.node.position);
     // 注册游戏暂停和恢复事件
     EventManager.Instance.on(EventType.GamePause, this.onGamePause);
     EventManager.Instance.on(EventType.GameResume, this.onGameResume);
@@ -114,7 +114,7 @@ export class Move extends Component {
     if (this.targets.length == 0) {
       this._isMoving = false;
       if (fromPrev) {
-        console.log("Move end: ", this.node.position);
+        // console.log("Move end: ", this.node.position);
         this.unscheduleAllCallbacks();
         this.node.removeFromParent();
         MonsterManager.Instance.recycleMonster(this.node);

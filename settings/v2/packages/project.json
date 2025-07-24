@@ -5,5 +5,35 @@
       "fitHeight": true,
       "fitWidth": false
     }
+  },
+  "physics": {
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "Monster"
+      },
+      {
+        "index": 2,
+        "name": "Obstacle"
+      },
+      {
+        "index": 3,
+        "name": "Carrot"
+      },
+      {
+        "index": 4,
+        "name": "Bullet"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 31,
+      "1": 25,
+      "2": 17,
+      "3": 3,
+      "4": 7
+    },
+    "gravity": {
+      "y": -10
+    }
   }
 }
