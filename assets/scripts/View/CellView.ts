@@ -1,7 +1,10 @@
 import { _decorator, Component, Node, Sprite, Color, UITransform } from "cc";
 import { CellModel } from "../Model/CellModel";
 import { MapManager } from "../Manager/MapManager";
-import { TowerConfig } from "../Model/TowerModel";
+import { TowerConfig, TowerType } from "../Model/TowerModel";
+import { ObstacleView } from "./ObstacleView";
+import { TowerView } from "./TowerView";
+import { GameConfigs } from "../Config/GameConfig";
 
 const { ccclass, property } = _decorator;
 
@@ -14,6 +17,8 @@ export class CellView extends Component {
   cellColors: Color[] = [];
 
   _sprite: Sprite = null!;
+  private _tower: TowerView | null = null; // 放置的塔模型，默认为null
+  private _obstacle: ObstacleView | null = null; // 放置的障碍物模型，默认为null
 
   private _row: number = 0;
   private _col: number = 0;
@@ -42,6 +47,23 @@ export class CellView extends Component {
 
     // 更新视图
     this.updateView();
+  }
+
+  updateTower() {}
+  setTower(towerType: TowerType) {
+    if (!this._model.buildable) return;
+    // 移除旧的塔
+    if (this._tower) {
+      this._tower.node.removeFromParent();
+      this._tower = null;
+    }
+    // 创建新的塔
+    const towerConfig = GameConfigs.getTowerConfig(towerType);
+    if (!towerConfig) {
+      console.error("无效的防御塔类型");
+      return;
+    }
+    // this.tower
   }
 
   /**
@@ -103,12 +125,17 @@ export class CellView extends Component {
     return this._model.type;
   }
 
-  get tower(): number {
-    return this._model.tower;
+  get tower(): TowerView | null {
+    return this._tower;
   }
-  set tower(tower: TowerConfig | null) {
-    this._model.tower = tower;
-    this.updateView();
+  set tower(tower: TowerView | null) {
+    this._tower = tower;
+  }
+  get obstacle(): ObstacleView | null {
+    return this._obstacle;
+  }
+  set obstacle(obstacle: ObstacleView | null) {
+    this._obstacle = obstacle;
   }
 
   /**

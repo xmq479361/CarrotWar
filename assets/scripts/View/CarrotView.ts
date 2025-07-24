@@ -62,7 +62,7 @@ export class CarrotView extends Component {
       this.node.destroy();
       EventManager.Instance.emit(EventType.GameOver);
     } else {
-      EventManager.Instance.emit(EventType.CarrotHit);
+      EventManager.Instance.emit(EventType.LifeChanged, this._hp);
     }
   }
 }

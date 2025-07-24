@@ -3,74 +3,47 @@ import {
   Component,
   Node,
   UITransform,
-  instantiate,
-  Prefab,
-  resources,
   input,
   Input,
   EventTouch,
-  Sprite,
-  SpriteFrame,
-  Vec2,
   PhysicsSystem2D,
+  Vec2,
+  Label,
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
 import { GameManager } from "../Manager/GameManager";
 import { EventManager, EventType } from "../Manager/EventManager";
-import { CellView } from "../View/CellView";
 import { GameState } from "../Data/GameDef";
-import { MonsterManager } from "../Manager/MonsterManager";
-import { Move } from "../Model/Move";
-import { MapConfig, WaveConfig } from "../Model/MapConfig";
-import { CellMenuView } from "../View/CellMenuView";
-import { TowerType } from "../Model/TowerModel";
-import { ObstacleView } from "../View/ObstacleView";
 import { GameView } from "../View/GameView";
+import { MapConfig } from "../Model/MapConfig";
+import { TowerType } from "../Model/TowerModel";
 
 const { ccclass, property } = _decorator;
 
 @ccclass("MainGameScene")
 export class MainGameScene extends Component {
-  @property(Node)
-  mapContainer: Node = null!;
-  @property(Prefab)
-  cellPrefab: Prefab = null!;
-  @property(Node)
-  menuNode: Node | null = null;
-  private _mentView: CellMenuView | null = null;
+  @property(GameView)
+  gameView: GameView = null!;
+
+  @property(Label)
+  goldLabel: Label = null!;
+
+  @property(Label)
+  lifeLabel: Label = null!;
+
+  @property(Label)
+  waveLabel: Label = null!;
 
   @property(Node)
-  bg: Node = null!;
+  pauseButton: Node = null!;
 
   @property(Node)
-  roadContainer: Node = null!;
-  @property(Prefab)
-  roadPrefab: Prefab = null!;
+  resumeButton: Node = null!;
 
-  @property(Node)
-  towerContainer: Node = null!;
-  @property(Prefab)
-  towerPrefab: Prefab = null!;
-
-  @property(Node)
-  obstacleContainer: Node = null!;
-  @property(Prefab)
-  obstaclePrefab: Prefab = null!;
-  @property(Prefab)
-  carrotPrefab: Prefab = null!;
   @property(String)
   currentLevel: string = "level1";
 
-  _carrotNode: Node | null = null;
   private gameState: GameState = GameState.LOADING;
-  private _showBuildMenu = false;
-
-  private _cellViews: Array<any | null>[] = [];
-
-  private _selectedCell: CellView | null = null;
-
-  //   @property(Node)
-  //   gameView: GameView;
   private static _instance: MainGameScene;
 
   static get Instance(): MainGameScene {
@@ -79,7 +52,7 @@ export class MainGameScene extends Component {
 
   protected onLoad(): void {
     if (MainGameScene._instance) {
-      this.destroy(); // destroy the current instance of the class if it's also an instance of the class
+      this.destroy();
       return;
     }
     MainGameScene._instance = this;
@@ -87,119 +60,111 @@ export class MainGameScene extends Component {
   }
 
   protected start(): void {
-    if (this.menuNode) {
-      this.menuNode.active = false;
-      this._mentView = this.menuNode.getComponent(CellMenuView);
-    }
+    // 注册事件监听
+    this.registerEvents();
+    
+    // 初始化UI
+    this.initUI();
+    
+    // 设置输入事件
     input.on(Input.EventType.TOUCH_START, this.onTouch, this);
+    
+    // 初始化游戏
     this.gameState = GameState.LOADING;
-    console.log("initializeMap");
+    console.log("初始化游戏场景");
+    
     // 获取地图容器尺寸
-    const transform = this.mapContainer.getComponent(UITransform);
+    const transform = this.gameView.mapContainer.getComponent(UITransform);
     if (!transform) {
       console.error("地图容器缺少UITransform组件");
       return;
     }
+    
     // 设置地图尺寸
     MapManager.Instance.setSize(transform.width, transform.height);
+    
+    // 加载游戏
     this.loadGame();
   }
 
   protected onDestroy(): void {
     input.off(Input.EventType.TOUCH_START, this.onTouch, this);
+    this.unregisterEvents();
   }
 
+  /**
+   * 注册事件监听
+   */
+  private registerEvents(): void {
+    EventManager.Instance.on(EventType.GoldChanged, this.updateGold, this);
+    EventManager.Instance.on(EventType.LifeChanged, this.updateLife, this);
+    EventManager.Instance.on(EventType.WaveChanged, this.updateWave, this);
+    EventManager.Instance.on(EventType.BuildTower, this.onBuildTower, this);
+    EventManager.Instance.on(EventType.UpgradeTower, this.onUpgradeTower, this);
+    EventManager.Instance.on(EventType.DemolishTower, this.onDemolishTower, this);
+  }
+
+  /**
+   * 取消事件监听
+   */
+  private unregisterEvents(): void {
+    EventManager.Instance.off(EventType.GoldChanged, this.updateGold);
+    EventManager.Instance.off(EventType.LifeChanged, this.updateLife);
+    EventManager.Instance.off(EventType.WaveChanged, this.updateWave);
+    EventManager.Instance.off(EventType.BuildTower, this.onBuildTower);
+    EventManager.Instance.off(EventType.UpgradeTower, this.onUpgradeTower);
+    EventManager.Instance.off(EventType.DemolishTower, this.onDemolishTower);
+  }
+
+  /**
+   * 初始化UI
+   */
+  private initUI(): void {
+    this.resumeButton.active = false;
+    this.updateGold(0);
+    this.updateLife(0);
+    this.updateWave(0, 0);
+  }
+
+  /**
+   * 处理触摸事件
+   */
   onTouch(event: EventTouch) {
     if (this.gameState !== GameState.PLAYING) {
       return;
     }
-    let hasChanged = this.handleSelectView(event);
-    if (!hasChanged && this._showBuildMenu) {
-      this.hideBuildMenu();
-      return;
-    }
-  }
-  handleSelectView(event: EventTouch): boolean {
-    let position = this.mapContainer
+    
+    let position = this.gameView.mapContainer
       .getComponent(UITransform)
       .convertToNodeSpaceAR(event.getUILocation().toVec3());
+    
     // 将坐标转换为格子位置
     let [col, row] = MapManager.Instance.getLocationFromPoint(
       position.x,
       position.y
     );
-    console.log("position: ", position, "point:", col, "x", row);
-    let cellView = this._cellViews[row][col];
-    if (!cellView) {
-      console.error("cellView is null");
-      return false;
-    }
-    if (cellView.path) {
-      console.error("cellView is path");
-      return false;
-    }
-    cellView.selected = !cellView.isSelected;
-    if (cellView === this._selectedCell) {
-      return false;
-    }
-    if (this._selectedCell) {
-      this._selectedCell.selected = false;
-    }
-    this._selectedCell = cellView;
-    this.showBuildMenu(row, col);
-    return true;
-    // GameManager.Instance.handleClickPosition(position.x, position.y);
-    // GameManager.Instance.onCellClicked(row, col);
-  }
-
-  private hideBuildMenu() {
-    if (this.menuNode) {
-      this.menuNode.active = false;
-      this._showBuildMenu = false;
-    }
-    if (this._selectedCell) {
-      this._selectedCell.selected = false;
-      this._selectedCell = null;
+    
+    console.log("点击位置: ", position, "格子:", col, "x", row);
+    
+    // 处理格子选择
+    let hasChanged = this.gameView.handleCellSelection(row, col);
+    
+    // 如果没有选中新格子且当前有建造菜单，则隐藏菜单
+    if (!hasChanged && this.gameView.isShowingBuildMenu()) {
+      this.gameView.hideBuildMenu();
     }
   }
 
-  private showBuildMenu(row: number, col: number) {
-    if (this._mentView) {
-      this._showBuildMenu = true;
-      // 获取可用的塔类型
-      const availableTowers = [
-        TowerType.ARROW,
-        // TowerType.MAGIC,
-        // TowerType.CANNON,
-        // TowerType.FREEZE,
-      ];
-      // 设置菜单
-      this._mentView.setup(row, col, availableTowers);
-      this.menuNode.active = true;
-    }
-  }
-
-  transitionToGameStart() {
-    this.gameState = GameState.PLAYING;
-    EventManager.Instance.emit(EventType.GameStart);
-  }
-  transitionToGamePause() {
-    this.gameState = GameState.PAUSED;
-    EventManager.Instance.emit(EventType.GamePause);
-  }
-  transitionToGameResume() {
-    this.gameState = GameState.PLAYING;
-    EventManager.Instance.emit(EventType.GameResume);
-  }
-  transitionToGameOver() {
-    this.gameState = GameState.GAME_OVER;
-    EventManager.Instance.emit(EventType.GameOver);
-  }
-
+  /**
+   * 加载游戏
+   */
   loadGame() {
     GameManager.Instance.initGame(this.currentLevel)
       .then((mapConfig: MapConfig) => {
-        this.initializeGame(mapConfig);
+        this.gameView.initializeGame(mapConfig);
+        this.updateGold(GameManager.Instance.gold);
+        this.updateLife(GameManager.Instance.life);
+        this.updateWave(GameManager.Instance.currentWave, GameManager.Instance.totalWaves);
         this.transitionToGameStart();
       })
       .catch((error) => {
@@ -207,85 +172,114 @@ export class MainGameScene extends Component {
       });
   }
 
-  initializeGame(mapConfig: MapConfig) {
-    // 清除现有格子
-    this.towerContainer.removeAllChildren();
-    this.roadContainer.removeAllChildren();
-    this.obstacleContainer.removeAllChildren();
-
-    if (!mapConfig) {
-      console.error("地图配置为空");
-      return;
-    }
-    console.info("initializeGame", mapConfig);
-    this.initBackground(mapConfig);
-    this.initCarrot(mapConfig);
-    this.initCells(mapConfig);
+  /**
+   * 切换到游戏开始状态
+   */
+  transitionToGameStart() {
+    this.gameState = GameState.PLAYING;
+    EventManager.Instance.emit(EventType.GameStart);
   }
 
-  initBackground(mapConfig: MapConfig) {
-    if (this.bg && mapConfig.background) {
-      resources.load(mapConfig.background, SpriteFrame, (err, spriteFrame) => {
-        if (err) {
-          console.error("加载背景图失败:", err);
-          return;
-        }
-        this.bg.getComponent(Sprite).spriteFrame = spriteFrame;
-      });
+  /**
+   * 切换到游戏暂停状态
+   */
+  transitionToGamePause() {
+    this.gameState = GameState.PAUSED;
+    this.pauseButton.active = false;
+    this.resumeButton.active = true;
+    EventManager.Instance.emit(EventType.GamePause);
+  }
+
+  /**
+   * 切换到游戏恢复状态
+   */
+  transitionToGameResume() {
+    this.gameState = GameState.PLAYING;
+    this.pauseButton.active = true;
+    this.resumeButton.active = false;
+    EventManager.Instance.emit(EventType.GameResume);
+  }
+
+  /**
+   * 切换到游戏结束状态
+   */
+  transitionToGameOver() {
+    this.gameState = GameState.GAME_OVER;
+    EventManager.Instance.emit(EventType.GameOver);
+  }
+
+  /**
+   * 更新金币显示
+   */
+  updateGold(gold: number) {
+    this.goldLabel.string = `金币: ${gold}`;
+  }
+
+  /**
+   * 更新生命值显示
+   */
+  updateLife(life: number) {
+    this.lifeLabel.string = `生命: ${life}`;
+  }
+
+  /**
+   * 更新波次显示
+   */
+  updateWave(currentWave: number, totalWaves: number) {
+    this.waveLabel.string = `波次: ${currentWave}/${totalWaves}`;
+  }
+
+  /**
+   * 处理建造防御塔事件
+   */
+  onBuildTower(row: number, col: number, towerType: TowerType) {
+    this.gameView.buildTower(row, col, towerType);
+  }
+
+  /**
+   * 处理升级防御塔事件
+   */
+  onUpgradeTower(row: number, col: number) {
+    this.gameView.upgradeTower(row, col);
+  }
+
+  /**
+   * 处理拆除防御塔事件
+   */
+  onDemolishTower(row: number, col: number) {
+    this.gameView.demolishTower(row, col);
+  }
+
+  /**
+   * 暂停按钮点击事件
+   */
+  onPauseButtonClick() {
+    if (this.gameState === GameState.PLAYING) {
+      this.transitionToGamePause();
     }
   }
 
-  initCarrot(mapConfig: MapConfig) {
-    if (this._carrotNode) {
-      this._carrotNode.destroy();
+  /**
+   * 恢复按钮点击事件
+   */
+  onResumeButtonClick() {
+    if (this.gameState === GameState.PAUSED) {
+      this.transitionToGameResume();
     }
-    const carrotNode = instantiate(this.carrotPrefab);
-    this._carrotNode = carrotNode;
-    this.mapContainer.addChild(carrotNode);
-    carrotNode.setPosition(
-      MapManager.Instance.getCellPosition(
-        mapConfig.targetRow,
-        mapConfig.targetCol
-      )
-    );
   }
 
-  initCells(mapConfig: MapConfig) {
-    const rows = mapConfig.rows;
-    const cols = mapConfig.cols;
+  /**
+   * 重新开始按钮点击事件
+   */
+  onRestartButtonClick() {
+    this.loadGame();
+  }
 
-    this._cellViews = [];
-    // 创建格子视图
-    for (let row = 0; row < rows; row++) {
-      this._cellViews[row] = [];
-
-      for (let col = 0; col < cols; col++) {
-        let cellPosition = MapManager.Instance.getCellPosition(row, col);
-        const cellModel = GameManager.Instance.getCellModel(row, col);
-        if (!cellModel) continue;
-        // 可建造区域
-        if (cellModel.buildable == true) {
-          const cellNode = instantiate(this.cellPrefab);
-          const cellView = cellNode.getComponent(CellView);
-          if (cellView) {
-            cellView.init(row, col, cellModel);
-            this._cellViews[row][col] = cellView;
-            this.towerContainer.addChild(cellNode);
-          }
-          // 障碍物
-          if (cellModel.obstacle) {
-            const obstacleNode = instantiate(this.obstaclePrefab);
-            const obstacleView = obstacleNode.getComponent(ObstacleView);
-            obstacleNode.setPosition(cellPosition);
-            this.obstacleContainer.addChild(obstacleNode);
-            cellView.obstacle = obstacleView;
-          }
-        } else if (cellModel.path) {
-          const roadNode = instantiate(this.roadPrefab);
-          roadNode.setPosition(cellPosition);
-          this.roadContainer.addChild(roadNode);
-        }
-      }
-    }
+  /**
+   * 返回主菜单按钮点击事件
+   */
+  onBackToMenuButtonClick() {
+    // 返回主菜单逻辑
+    GameManager.Instance.loadMainMenu();
   }
 }
