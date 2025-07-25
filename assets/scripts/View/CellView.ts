@@ -1,10 +1,17 @@
-import { _decorator, Component, Node, Sprite, Color, UITransform } from "cc";
-import { CellModel } from "../Model/CellModel";
+import {
+  _decorator,
+  Component,
+  Node,
+  Sprite,
+  Color,
+  UITransform,
+  Prefab,
+  instantiate,
+} from "cc";
 import { MapManager } from "../Manager/MapManager";
-import { TowerConfig, TowerType } from "../Model/TowerModel";
 import { ObstacleView } from "./ObstacleView";
 import { TowerView } from "./TowerView";
-import { GameConfigs } from "../Config/GameConfig";
+import { TowerConfig } from "../Config/GameConfig";
 
 const { ccclass, property } = _decorator;
 
@@ -23,6 +30,9 @@ export class CellView extends Component {
   private _row: number = 0;
   private _col: number = 0;
   private _model: CellModel = null!;
+
+  @property(Prefab)
+  towerPrefab: Prefab = null!;
 
   private _isSelected: boolean = false; // 是否被选中
   // private _tower: TowerModel | null = null; // 放置的塔模型，默认为nul
@@ -49,21 +59,28 @@ export class CellView extends Component {
     this.updateView();
   }
 
-  updateTower() {}
-  setTower(towerType: TowerType) {
-    if (!this._model.buildable) return;
+  upgradeTower() {
+    if (!this._tower) return;
+    this._tower.upgrade();
+  }
+  setTower(towerConfig: TowerConfig) {
+    console.info("setTower");
+    // if (!this.buildable) return;
     // 移除旧的塔
     if (this._tower) {
       this._tower.node.removeFromParent();
       this._tower = null;
     }
     // 创建新的塔
-    const towerConfig = GameConfigs.getTowerConfig(towerType);
     if (!towerConfig) {
       console.error("无效的防御塔类型");
       return;
     }
-    // this.tower
+    let tower = instantiate(this.towerPrefab);
+    this._tower = tower.getComponent(TowerView);
+    tower.parent = this.node;
+    tower.setPosition(0, 0, 0);
+    this._tower.setup(this.row, this.col, towerConfig);
   }
 
   /**
@@ -92,9 +109,9 @@ export class CellView extends Component {
 
     // 根据是否可建造设置透明度
     // if (this._sprite) {
-    const color = this._sprite.color.clone();
-    color.a = this._model.buildable ? 255 : 0;
-    this._sprite.color = color;
+    // const color = this._sprite.color.clone();
+    // color.a = this._model.buildable ? 255 : 0;
+    // this._sprite.color = color;
     // }
     if (this.background) {
       const opacity = this._isSelected ? 255 : 0;

@@ -36,27 +36,22 @@ export class CarrotView extends Component {
     }
     let uiTransform = this.getComponent(UITransform);
     if (uiTransform) {
-      uiTransform.setContentSize(MapManager.Instance.cellWidth, MapManager.Instance.cellHeight);
+      uiTransform.setContentSize(
+        MapManager.Instance.cellWidth,
+        MapManager.Instance.cellHeight
+      );
     }
   }
 
   protected onDestroy(): void {
     let collider = this.getComponentInChildren(Collider2D);
     if (collider) {
-  collider.off(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
+      collider.off(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
     }
   }
 
-  onContactEnter(
-    selfCollider: Collider2D,
-    otherCollider: Collider2D,
-  ) {
-    console.log(
-      "onHit",
-      selfCollider,
-      otherCollider,
-      otherCollider.tag
-    );
+  onContactEnter(selfCollider: Collider2D, otherCollider: Collider2D) {
+    console.log("onHit", selfCollider, otherCollider, otherCollider.tag);
     this._hp--;
     if (this._bodyHpLabel) {
       this._bodyHpLabel.string = this._hp.toString();

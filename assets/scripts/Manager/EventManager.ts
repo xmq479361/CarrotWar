@@ -28,22 +28,25 @@ export enum EventType {
   BulletUpdate = "BulletUpdate",
   BulletFire = "BulletFire",
   BulletHit = "BulletHit",
-  // 
-  WaveChanged = "WaveChanged",
-  WaveCompleted = "WaveCompleted",
-  WaveStarted = "WaveStarted",
-  WaveNextReady = "WaveNextReady",
   // 游戏UI事件
   UIUpdate = "UIUpdate",
-  GoldChanged = "GoldChanged",
-  LifeChanged = "LifeChanged",
-  BuildTower = "BuildTower",
-  UpgradeTower = "UpgradeTower",
-  DemolishTower = "DemolishTower",
-
   // 游戏音效事件
   SoundPlay = "SoundPlay",
   SoundStop = "SoundStop",
+  // 胡萝卜被攻击
+  LifeChanged = "LifeChanged",
+  GoldChanged = "GoldChanged",
+  BuildTower = "BuildTower",
+  UpgradeTower = "UpgradeTower",
+  DemolishTower = "DemolishTower",
+  // 游戏关卡事件
+  WaveNextReady = "WaveNexteady",
+  WaveCompleted = "WaveCompleted",
+  WaveChanged = "WaveChanged",
+  WaveStarted = "WaveStarted",
+  // 新增事件类型
+  SetPriorityTarget = "set-priority-target",
+  GameSpeedChanged = "game-speed-changed",
 }
 export class EventManager {
   private static _instance: EventManager;
@@ -101,6 +104,7 @@ export class EventManager {
    * @param args 参数
    */
   emit(eventName: string, ...args: any[]): void {
+    console.log("emit event: " + eventName);
     if (!this._events.has(eventName)) return;
 
     const callbacks = this._events.get(eventName)!;

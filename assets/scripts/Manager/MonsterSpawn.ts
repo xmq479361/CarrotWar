@@ -1,22 +1,14 @@
-import {
-  _decorator,
-  Component,
-  instantiate,
-  Node,
-  NodePool,
-  Prefab,
-  Label,
-} from "cc";
-import { GameManager } from "./GameManager";
+import { _decorator, instantiate, Node, Prefab, Label } from "cc";
 import { MapConfig, Point, WaveConfig } from "../Model/MapConfig";
 import { EventManager, EventType } from "./EventManager";
 import { MonsterManager } from "./MonsterManager";
-import { GameConfigs, MonsterConfig } from "../Config/GameConfig";
 import { MonsterView } from "../View/MonsterView";
+import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
+import { MonsterConfig, MonsterConfigs } from "../Config/MonsterConfig";
 const { ccclass, property } = _decorator;
 
 @ccclass("MonsterSpawn")
-export class MonsterSpawn extends Component {
+export class MonsterSpawn extends SpeedCtrlComponent {
   @property(Node)
   monsterContainer: Node = null!;
 
@@ -32,33 +24,30 @@ export class MonsterSpawn extends Component {
   @property
   delayBetweenWaves: number = 5;
 
-  _waves: WaveConfig[] = [];
-  /// 波数
+  /// 总波数
+  _waveLength: number = 0;
+  /// 当前波数(下标)
   _waveNo: number = 0;
-  /// 当前波中怪物生成数量
+  /// 当前波中怪物已生成数量
   _waveNum: number = 0;
   /// 当前波中存活的怪物数量
   _aliveMonsters: number = 0;
-  /// 是否暂停
   _isPaused: boolean = false;
   /// 是否正在生成怪物
   _isSpawning: boolean = false;
   /// 下一波开始的倒计时
   _nextWaveCountdown: number = 0;
 
-  start() {
-    // 预先创建一些怪物实例到对象池
-    for (let i = 0; i < 10; i++) {
-      MonsterManager.Instance.recycleMonster(instantiate(this.monsterPrefab));
-    }
+  mapConfig: MapConfig = null!;
+  wave: WaveConfig;
+  startCol: number;
+  startRow: number;
+  monsterConfig: MonsterConfig;
+  path: Point[];
 
+  start() {
     // 注册事件监听
     this.registerEvents();
-
-    // 初始化波次信息显示
-    if (this.waveInfoLabel) {
-      this.waveInfoLabel.string = "准备开始";
-    }
   }
 
   onDestroy() {
@@ -69,23 +58,67 @@ export class MonsterSpawn extends Component {
   }
 
   registerEvents() {
-EventManager.Instance.on(EventType.GameStart, this.onGameStart.bind(this));
-EventManager.Instance.on(EventType.GamePause, this.onGamePause.bind(this));
-EventManager.Instance.on(EventType.GameResume, this.onGameResume.bind(this));
-EventManager.Instance.on(EventType.GameOver, this.onGameOver.bind(this));
-EventManager.Instance.on(EventType.MonsterDie, this.onMonsterDied.bind(this));
-EventManager.Instance.on(EventType.WaveStarted, this.onStartNextWave.bind(this));
+    EventManager.Instance.on(EventType.GameStart, this.onGameStart.bind(this));
+    EventManager.Instance.on(EventType.GamePause, this.onGamePause.bind(this));
+    EventManager.Instance.on(
+      EventType.GameResume,
+      this.onGameResume.bind(this)
+    );
+    EventManager.Instance.on(EventType.GameOver, this.onGameOver.bind(this));
+    EventManager.Instance.on(
+      EventType.MonsterDie,
+      this.onMonsterDied.bind(this)
+    );
+    EventManager.Instance.on(
+      EventType.WaveStarted,
+      this.onStartNextWave.bind(this)
+    );
+    EventManager.Instance.on(
+      EventType.GameSpeedChanged,
+      this.onGameSpeedChanged.bind(this)
+    );
   }
 
   unregisterEvents() {
-EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
+    EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
     EventManager.Instance.off(EventType.GamePause, this.onGamePause.bind(this));
-    EventManager.Instance.off(EventType.GameResume, this.onGameResume.bind(this));
+    EventManager.Instance.off(
+      EventType.GameResume,
+      this.onGameResume.bind(this)
+    );
     EventManager.Instance.off(EventType.GameOver, this.onGameOver.bind(this));
-    EventManager.Instance.off(EventType.MonsterDie, this.onMonsterDied.bind(this));
-    EventManager.Instance.off(EventType.WaveStarted, this.onStartNextWave.bind(this));
+    EventManager.Instance.off(
+      EventType.MonsterDie,
+      this.onMonsterDied.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.WaveStarted,
+      this.onStartNextWave.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.GameSpeedChanged,
+      this.onGameSpeedChanged.bind(this)
+    );
   }
 
+  setup(mapConfig: MapConfig) {
+    this.mapConfig = mapConfig;
+    this._waveLength = mapConfig.waves.length;
+    this._waveNo = 0;
+    this._waveNum = 0;
+    this._aliveMonsters = 0;
+    this._isPaused = false;
+    this._isSpawning = false;
+    this._nextWaveCountdown = 0;
+    // 预先创建一些怪物实例到对象池
+    for (let i = 0; i < 10; i++) {
+      MonsterManager.Instance.recycleMonster(instantiate(this.monsterPrefab));
+    }
+    // 初始化波次信息显示
+    if (this.waveInfoLabel) {
+      this.waveInfoLabel.string = "准备开始";
+    }
+  }
   onGameStart() {
     console.log("MonsterSpawn onGameStart");
     this.unscheduleAllCallbacks();
@@ -95,12 +128,9 @@ EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
     this._waveNum = 0;
     this._aliveMonsters = 0;
 
+    this.updateWaveInfoLabel();
     if (this.monsterContainer) {
       this.monsterContainer.removeAllChildren();
-      this._waves = GameManager.Instance.mapConfig.waves;
-
-      // 更新波次信息显示
-      this.updateWaveInfoLabel();
 
       // 开始第一波
       this.startSpawningMonsters(this._waveNo);
@@ -110,19 +140,15 @@ EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
   onGamePause() {
     console.log("MonsterSpawn onGamePause");
     this._isPaused = true;
-    this.unscheduleAllCallbacks();
+    this.isScheduleEnable = false;
   }
 
   onGameResume() {
     console.log("MonsterSpawn onGameResume");
     this._isPaused = false;
-
-    // 如果正在生成怪物，继续生成
-    if (this._isSpawning) {
-      this.startSpawningMonsters(this._waveNo);
-    }
+    this.isScheduleEnable = true;
     // 如果在波次间隔中，继续倒计时
-    else if (this._nextWaveCountdown > 0) {
+    if (this._nextWaveCountdown > 0) {
       this.startNextWaveCountdown();
     }
   }
@@ -138,10 +164,7 @@ EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
     this._aliveMonsters--;
 
     // 检查当前波次是否结束
-    if (
-      this._aliveMonsters <= 0 &&
-      this._waveNum >= this._waves[this._waveNo].count
-    ) {
+    if (this._aliveMonsters <= 0 && this._waveNum >= this.wave.count) {
       this.onWaveCompleted();
     }
   }
@@ -150,10 +173,10 @@ EventManager.Instance.off(EventType.GameStart, this.onGameStart.bind(this));
     console.log(`第 ${this._waveNo + 1} 波怪物已全部消灭`);
 
     // 触发波次结束事件
-EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
+    EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
 
     // 检查是否还有下一波
-    if (this._waveNo + 1 < this._waves.length) {
+    if (this._waveNo + 1 < this._waveLength) {
       this._waveNo++;
 
       // 更新波次信息
@@ -165,12 +188,12 @@ EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
         this.startNextWaveCountdown();
       } else {
         // 触发下一波准备就绪事件，等待玩家手动开始
-  EventManager.Instance.emit(EventType.WaveNextReady, this._waveNo);
+        EventManager.Instance.emit(EventType.WaveNextReady, this._waveNo);
       }
     } else {
       // 所有波次完成，游戏胜利
       console.log("所有波次完成");
-  EventManager.Instance.emit(EventType.GameWin);
+      EventManager.Instance.emit(EventType.GameWin);
     }
   }
 
@@ -199,7 +222,7 @@ EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
     // 手动开始下一波
     if (
       !this._isPaused &&
-      this._waveNo < this._waves.length &&
+      this._waveNo < this._waveLength &&
       !this._isSpawning
     ) {
       this.startSpawningMonsters(this._waveNo);
@@ -208,8 +231,8 @@ EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
 
   updateWaveInfoLabel() {
     if (this.waveInfoLabel) {
-      if (this._waveNo < this._waves.length) {
-        const totalWaves = this._waves.length;
+      if (this._waveNo < this._waveLength) {
+        const totalWaves = this._waveLength;
         this.waveInfoLabel.string = `波次: ${this._waveNo + 1}/${totalWaves}`;
       } else {
         this.waveInfoLabel.string = "全部完成";
@@ -218,82 +241,61 @@ EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
   }
 
   startSpawningMonsters(waveNo: number) {
-    if (this._isPaused || waveNo >= this._waves.length) {
+    if (this._isPaused || waveNo >= this._waveLength) {
       return;
     }
 
     this._isSpawning = true;
     this._waveNum = 0;
 
-    let mapConfig = GameManager.Instance.mapConfig;
-    let wave = this._waves[waveNo];
+    this.wave = this.mapConfig.waves[waveNo];
 
-    if (wave) {
-      // 触发波次开始事件
-      EventManager.Instance.emit(EventType.WaveStarted, waveNo);
-
-      // 更新波次信息显示
-      if (this.waveInfoLabel) {
-        this.waveInfoLabel.string = `波次 ${waveNo + 1}/${
-          this._waves.length
-        } 进行中`;
-      }
-
-      // 延迟后开始生成怪物
-      this.scheduleOnce(
-        () =>
-          this.spawn(
-            wave,
-            wave.startCol ?? mapConfig.startCol,
-            wave.startRow ?? mapConfig.startRow,
-            mapConfig.paths[wave.pathIndex ?? 0]
-          ),
-        wave.delay
-      );
+    if (!this.wave) {
+      console.error(`Invalid wave index: ${waveNo}`);
+      return; // 或者抛出一个错误或采取其他适当的处理方式，以避免后续的错误或逻辑错误
     }
+    // 触发波次开始事件
+    EventManager.Instance.emit(EventType.WaveStarted, waveNo);
+    // 更新波次信息显示
+    this.updateWaveInfoLabel();
+    this.path = this.mapConfig.paths[this.wave.pathIndex ?? 0];
+    this.monsterConfig = MonsterConfigs.getMonsterConfig(this.wave.enemyType);
+    this.startCol = this.wave.startCol ?? this.mapConfig.startCol;
+    this.startRow = this.wave.startRow ?? this.mapConfig.startRow;
+    // 延迟后开始生成怪物
+    this.setSchedule(this.wave.delay, this.wave.interval, null);
+    this.startSchedule();
   }
 
-  spawn(wave: WaveConfig, startCol: number, startRow: number, path: Point[]) {
-    if (this._isPaused) return;
-
-    // 获取怪物配置
-    const monsterConfig = GameConfigs.getMonsterConfig(wave.enemyType);
-
+  /// 定期任务毁掉
+  onScheduleCallback(dt: number): void {
+    if (this._isPaused || !this._isSpawning) return;
     // 创建怪物实例
-let monster = MonsterManager.Instance.newMonster(this.monsterPrefab);
-
-    // 设置怪物属性
-// MonsterManager.Instance.setupMonster(monster, wave.enemyType, wave.hp);
-
+    let monster = MonsterManager.Instance.newMonster(this.monsterPrefab);
     // 设置怪物移动组件
     let monsterView = monster.getComponent(MonsterView);
     if (monsterView) {
       this.monsterContainer.addChild(monster);
-monsterView.setup(startCol, startRow, monsterConfig);
-      monsterView.setTarget([...path]);
-
+      // 设置怪物属性
+      monsterView.setup(
+        this.startCol,
+        this.startRow,
+        this.monsterConfig,
+        this.wave
+      );
+      monsterView.setTarget([...this.path]);
       // 增加存活怪物计数
       this._aliveMonsters++;
     }
-
     // 增加已生成怪物计数
     this._waveNum++;
-
     // 检查是否需要继续生成怪物
-    if (this._waveNum < wave.count) {
-      // 按间隔继续生成
-      return this.scheduleOnce(
-        () => this.spawn(wave, startCol, startRow, path),
-        wave.interval
-      );
+    if (this._waveNum >= this.wave.count) {
+      // 当前波次的怪物全部生成完毕
+      this._isSpawning = false;
     }
-
-    // 当前波次的怪物全部生成完毕
-    this._isSpawning = false;
-
-    // 如果没有存活的怪物，直接触发波次完成
-    if (this._aliveMonsters <= 0) {
-      this.onWaveCompleted();
-    }
+  }
+  onGameSpeedChanged(speedFactor: number) {
+    this.speedFactor = speedFactor;
   }
 }

@@ -3,7 +3,7 @@
   "name": "第一关：初出茅庐",
   "rows": 8,
   "cols": 12,
-  "initialGold": 100,
+  "initialGold": 150,
   "initialLife": 10,
   "background": "mnhUb1750671908801/spriteFrame",
   "startCol": 3,

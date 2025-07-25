@@ -8,127 +8,158 @@ import {
   EventTouch,
   PhysicsSystem2D,
   Vec2,
-  Label
-} from "cc"
-import { MapManager } from "../Manager/MapManager"
-import { GameManager } from "../Manager/GameManager"
-import { EventManager, EventType } from "../Manager/EventManager"
-import { GameState } from "../Data/GameDef"
-import { GameView } from "../View/GameView"
-import { MapConfig } from "../Model/MapConfig"
-import { TowerType } from "../Model/TowerModel"
+  Label,
+} from "cc";
+import { MapManager } from "../Manager/MapManager";
+import { GameManager } from "../Manager/GameManager";
+import { EventManager, EventType } from "../Manager/EventManager";
+import { GameState } from "../Data/GameDef";
+import { GameView } from "../View/GameView";
+import { MapConfig } from "../Model/MapConfig";
+import { TowerConfig } from "../Config/GameConfig";
 
-const { ccclass, property } = _decorator
+const { ccclass, property } = _decorator;
 
 @ccclass("MainGameScene")
 export class MainGameScene extends Component {
   @property(GameView)
-  gameView: GameView = null!
+  gameView: GameView = null!;
 
   @property(Label)
-  goldLabel: Label = null!
+  goldLabel: Label = null!;
 
   @property(Label)
-  lifeLabel: Label = null!
+  lifeLabel: Label = null!;
 
   @property(Label)
-  waveLabel: Label = null!
+  waveLabel: Label = null!;
 
   @property(Node)
-  pauseAndResumeButton: Node = null!
+  pauseAndResumeButton: Node = null!;
 
   @property(Node)
-  menuButton: Node = null!
+  menuButton: Node = null!;
 
   @property(String)
-  currentLevel: string = "level1"
-  gold: number = 0
-  life: number = 0
-  currentWave: number = 0
-  totalWaves: number = 0
+  currentLevel: string = "level1";
+  @property(Node)
+  speedControlNode: Node = null!;
+  gold: number = 0;
+  life: number = 0;
+  currentWave: number = 0;
+  totalWaves: number = 0;
+  private _currentSpeedFactor: number = 1.0;
+  private _isPaused: boolean = false;
 
-  private gameState: GameState = GameState.LOADING
-  private static _instance: MainGameScene
+  private gameState: GameState = GameState.LOADING;
+  private static _instance: MainGameScene;
 
   static get Instance(): MainGameScene {
-    return MainGameScene._instance
+    return MainGameScene._instance;
   }
 
   protected onLoad(): void {
     if (MainGameScene._instance) {
-      this.destroy()
-      return
+      this.destroy();
+      return;
     }
-    MainGameScene._instance = this
-// PhysicsSystem2D.instance.gravity = Vec2.ZERO
+    MainGameScene._instance = this;
+    // PhysicsSystem2D.instance.gravity = Vec2.ZERO
     PhysicsSystem2D.instance.enable = true;
   }
 
   protected start(): void {
     // 注册事件监听
-    this.registerEvents()
+    this.registerEvents();
 
     // 初始化UI
-    this.initUI()
+    this.initUI();
 
     // 设置输入事件
-    input.on(Input.EventType.TOUCH_START, this.onTouch, this)
+    input.on(Input.EventType.TOUCH_START, this.onTouch, this);
 
     // 初始化游戏
-    this.gameState = GameState.LOADING
-    console.log("初始化游戏场景")
+    this.gameState = GameState.LOADING;
+    console.log("初始化游戏场景");
 
     // 获取地图容器尺寸
-    const transform = this.gameView.mapContainer.getComponent(UITransform)
+    const transform = this.gameView.mapContainer.getComponent(UITransform);
     if (!transform) {
-      console.error("地图容器缺少UITransform组件")
-      return
+      console.error("地图容器缺少UITransform组件");
+      return;
     }
 
     // 设置地图尺寸
-    MapManager.Instance.setSize(transform.width, transform.height)
+    MapManager.Instance.setSize(transform.width, transform.height);
 
     // 加载游戏
-    this.loadGame()
+    this.loadGame();
   }
 
   protected onDestroy(): void {
-    input.off(Input.EventType.TOUCH_START, this.onTouch, this)
-    this.unregisterEvents()
+    input.off(Input.EventType.TOUCH_START, this.onTouch, this);
+    this.unregisterEvents();
   }
 
   /**
    * 注册事件监听
    */
   private registerEvents(): void {
-EventManager.Instance.on(EventType.GoldChanged, this.updateGold.bind(this))
-EventManager.Instance.on(EventType.LifeChanged, this.updateLife.bind(this))
-    EventManager.Instance.on(EventType.WaveChanged, this.updateWave.bind(this))
-    EventManager.Instance.on(EventType.BuildTower, this.onBuildTower.bind(this))
-    EventManager.Instance.on(EventType.UpgradeTower, this.onUpgradeTower.bind(this))
-    EventManager.Instance.on(EventType.DemolishTower, this.onDemolishTower.bind(this))
+    EventManager.Instance.on(EventType.GoldChanged, this.updateGold.bind(this));
+    EventManager.Instance.on(EventType.LifeChanged, this.updateLife.bind(this));
+    EventManager.Instance.on(EventType.WaveChanged, this.updateWave.bind(this));
+    EventManager.Instance.on(
+      EventType.BuildTower,
+      this.onBuildTower.bind(this)
+    );
+    EventManager.Instance.on(
+      EventType.UpgradeTower,
+      this.onUpgradeTower.bind(this)
+    );
+    EventManager.Instance.on(
+      EventType.DemolishTower,
+      this.onDemolishTower.bind(this)
+    );
   }
 
   /**
    * 取消事件监听
    */
   private unregisterEvents(): void {
-EventManager.Instance.off(EventType.GoldChanged, this.updateGold.bind(this))
-EventManager.Instance.off(EventType.LifeChanged, this.updateLife.bind(this))
-    EventManager.Instance.off(EventType.WaveChanged, this.updateWave.bind(this))
-    EventManager.Instance.off(EventType.BuildTower, this.onBuildTower.bind(this))
-    EventManager.Instance.off(EventType.UpgradeTower, this.onUpgradeTower.bind(this))
-    EventManager.Instance.off(EventType.DemolishTower, this.onDemolishTower.bind(this))
+    EventManager.Instance.off(
+      EventType.GoldChanged,
+      this.updateGold.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.LifeChanged,
+      this.updateLife.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.WaveChanged,
+      this.updateWave.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.BuildTower,
+      this.onBuildTower.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.UpgradeTower,
+      this.onUpgradeTower.bind(this)
+    );
+    EventManager.Instance.off(
+      EventType.DemolishTower,
+      this.onDemolishTower.bind(this)
+    );
   }
 
   /**
    * 初始化UI
    */
   private initUI(): void {
-this.pauseAndResumeButton.active = false
-    this.updateGold()
-    this.updateLife()
-    this.updateWave()
+    this.pauseAndResumeButton.active = false;
+    this.updateGold();
+    this.updateLife();
+    this.updateWave();
   }
 
   /**
@@ -136,27 +167,27 @@ this.pauseAndResumeButton.active = false
    */
   onTouch(event: EventTouch) {
     if (this.gameState !== GameState.PLAYING) {
-      return
+      return;
     }
 
     let position = this.gameView.mapContainer
       .getComponent(UITransform)
-      .convertToNodeSpaceAR(event.getUILocation().toVec3())
+      .convertToNodeSpaceAR(event.getUILocation().toVec3());
 
     // 将坐标转换为格子位置
     let [col, row] = MapManager.Instance.getLocationFromPoint(
       position.x,
       position.y
-    )
+    );
 
-    console.log("点击位置: ", position, "格子:", col, "x", row)
+    console.log("点击位置: ", position, "格子:", col, "x", row);
 
     // 处理格子选择
-    let hasChanged = this.gameView.handleCellSelection(row, col)
+    let hasChanged = this.gameView.handleCellSelection(row, col);
 
     // 如果没有选中新格子且当前有建造菜单，则隐藏菜单
     if (!hasChanged && this.gameView.isShowingBuildMenu()) {
-      this.gameView.hideBuildMenu()
+      this.gameView.hideBuildMenu();
     }
   }
 
@@ -164,93 +195,121 @@ this.pauseAndResumeButton.active = false
    * 加载游戏
    */
   loadGame() {
-    GameManager.Instance.initGame(this.currentLevel)
+    MapManager.Instance.loadMapConfig(this.currentLevel)
       .then((mapConfig: MapConfig) => {
-        this.gameView.initializeGame(mapConfig)
-        this.updateGold()
-        this.updateLife()
-        this.updateWave()
-        this.transitionToGameStart()
+        this.gameView.initializeGame(mapConfig);
+        this.updateGold(mapConfig.initialGold);
+        this.updateLife(mapConfig.initialLife);
+        this.updateWave(0);
+        this.transitionToGameStart();
       })
       .catch((error) => {
-        console.error("初始化游戏失败:", error)
-      })
+        console.error("初始化游戏失败:", error);
+      });
   }
 
   /**
    * 切换到游戏开始状态
    */
   transitionToGameStart() {
-    this.gameState = GameState.PLAYING
-    EventManager.Instance.emit(EventType.GameStart)
+    this.gameState = GameState.PLAYING;
+    EventManager.Instance.emit(EventType.GameStart);
   }
 
   /**
    * 切换到游戏暂停状态
    */
   transitionToGamePause() {
-    this.gameState = GameState.PAUSE
-    this.pauseAndResumeButton.active = true
-    EventManager.Instance.emit(EventType.GamePause)
+    this.gameState = GameState.PAUSED;
+    this.pauseAndResumeButton.active = true;
+    EventManager.Instance.emit(EventType.GameSpeedChanged, 0);
+    EventManager.Instance.emit(EventType.GamePause);
   }
 
   /**
    * 切换到游戏恢复状态
    */
   transitionToGameResume() {
-    this.gameState = GameState.PLAYING
-    this.pauseAndResumeButton.active = true
-    EventManager.Instance.emit(EventType.GameResume)
+    this.gameState = GameState.PLAYING;
+    this.pauseAndResumeButton.active = true;
+    EventManager.Instance.emit(
+      EventType.GameSpeedChanged,
+      this._currentSpeedFactor
+    );
+    EventManager.Instance.emit(EventType.GameResume);
+  }
+  transitionToGameSpeed() {
+    this._currentSpeedFactor = 2.0;
+    EventManager.Instance.emit(
+      EventType.GameSpeedChanged,
+      this._currentSpeedFactor
+    );
+  }
+  transitionToGameDoubleSpeed() {
+    this._currentSpeedFactor = 2.0;
+    EventManager.Instance.emit(
+      EventType.GameSpeedChanged,
+      this._currentSpeedFactor
+    );
   }
 
   /**
    * 切换到游戏结束状态
    */
   transitionToGameOver() {
-    this.gameState = GameState.GAME_OVER
-    EventManager.Instance.emit(EventType.GameOver)
+    this.gameState = GameState.GAME_OVER;
+    EventManager.Instance.emit(EventType.GameOver);
   }
 
   /**
    * 更新金币显示
    */
-  updateGold() {
-    this.goldLabel.string = `金币: ${this.gold}`
+  updateGold(value?: number) {
+    if (value !== undefined) {
+      this.gold = value;
+    }
+    this.goldLabel.string = `金币: ${this.gold}`;
   }
 
   /**
  更新生命值显示
    */
-  updateLife() {
-    this.lifeLabel.string = `生命: ${this.life}`
+  updateLife(value?: number) {
+    if (value !== undefined) {
+      this.life = value;
+    }
+    this.lifeLabel.string = `生命: ${this.life}`;
   }
 
   /**
    * 更新波次显示
    */
-  updateWave() {
-    this.waveLabel.string = `波次: ${this.currentWave}/${this.totalWaves}`
+  updateWave(value?: number) {
+    if (value !== undefined) {
+      this.currentWave = value;
+    }
+    this.waveLabel.string = `波次: ${this.currentWave}/${this.totalWaves}`;
   }
 
   /**
    * 处理建造防御塔事件
    */
-  onBuildTower(row: number, col: number, towerType: TowerType) {
-    this.gameView.buildTower(row, col, towerType)
+  onBuildTower(row: number, col: number, towerConfig: TowerConfig) {
+    this.gameView.buildTower(row, col, towerConfig);
   }
 
   /**
    * 处理升级防御塔事件
    */
   onUpgradeTower(row: number, col: number) {
-    this.gameView.upgradeTower(row, col)
+    this.gameView.upgradeTower(row, col);
   }
 
   /**
    * 处理拆除防御塔事件
    */
   onDemolishTower(row: number, col: number) {
-    this.gameView.demolishTower(row, col)
+    this.gameView.demolishTower(row, col);
   }
 
   /**
@@ -258,7 +317,7 @@ this.pauseAndResumeButton.active = false
    */
   onPauseButtonClick() {
     if (this.gameState === GameState.PLAYING) {
-      this.transitionToGamePause()
+      this.transitionToGamePause();
     }
   }
 
@@ -266,8 +325,8 @@ this.pauseAndResumeButton.active = false
    * 恢复按钮点击事件
    */
   onResumeButtonClick() {
-if (this.gameState === GameState.PAUSE) {
-      this.transitionToGameResume()
+    if (this.gameState === GameState.PAUSED) {
+      this.transitionToGameResume();
     }
   }
 
@@ -275,7 +334,7 @@ if (this.gameState === GameState.PAUSE) {
    * 重新开始按钮点击事件
    */
   onRestartButtonClick() {
-    this.loadGame()
+    this.loadGame();
   }
 
   /**
@@ -283,6 +342,6 @@ if (this.gameState === GameState.PAUSE) {
    */
   onBackToMenuButtonClick() {
     // 返回主菜单逻辑
-// GameManager.Instance.loadMainMenu()
+    // GameManager.Instance.loadMainMenu()
   }
 }
