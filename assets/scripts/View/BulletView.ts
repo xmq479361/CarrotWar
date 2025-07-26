@@ -9,14 +9,13 @@ import {
   SpriteFrame,
   Vec2,
 } from "cc";
-import { MapManager } from "../Manager/MapManager";
 import { EventManager, EventType } from "../Manager/EventManager";
-import { Move } from "../Model/Move";
-import { DamageType } from "../Config/GameConfig";
+import { DamageType } from "../Config/DamageConfig";
+import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
 const { ccclass, property } = _decorator;
 
 @ccclass("BulletView")
-export class BulletView extends Move {
+export class BulletView extends SpeedCtrlComponent {
   bulletConfig: BulletConfig = null!;
   targetNode: Node | null = null!;
   attack: number = 0;
@@ -92,14 +91,19 @@ export class BulletView extends Move {
       this.targetNode.worldPosition.toVec2(),
       offset / distance
     );
-    console.log(
-      "Bullet distance:",
-      distance,
-      offset,
-      newPosition,
-      this.node.worldPosition.toVec2(),
-      this.targetNode.worldPosition.toVec2()
-    );
+    // console.info(
+    //   "Bullet distance:",
+    //   distance,
+    //   "angle",
+    //   offset,
+    //   Vec2.angle(
+    //     this.node.worldPosition.toVec2(),
+    //     this.targetNode.worldPosition.toVec2()
+    //   ),
+    //   newPosition,
+    //   this.node.worldPosition.toVec2(),
+    //   this.targetNode.worldPosition.toVec2()
+    // );
 
     if (distance <= 0.1) {
       this.hitTarget();

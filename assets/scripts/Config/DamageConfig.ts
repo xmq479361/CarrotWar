@@ -1,14 +1,6 @@
-import { _decorator, Component, Node } from 'cc';
-const { ccclass, property } = _decorator;
-
-@ccclass('DamageConfig')
-export class DamageConfig extends Component {
-    start() {
-
-    }
-
-    update(deltaTime: number) {
-        
-    }
+// 攻击类型枚举
+export enum DamageType {
+  PHYSICAL = 1, // 物理伤害
+  MAGICAL = 2, // 魔法伤害
+  PURE = 3, // 真实伤害
 }
-

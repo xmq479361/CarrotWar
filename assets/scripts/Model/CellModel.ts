@@ -1,4 +1,4 @@
-import { TowerConfig } from "./TowerModel";
+import { TowerConfig } from "../Config/TowerConfig";
 
 export class CellModel {
   private _row: number;
@@ -10,14 +10,22 @@ export class CellModel {
   private _buildable: boolean = false;
   /// 装饰
   private _decoration: number | null;
-  /// 防御塔
-  private _tower: TowerConfig | null = null; // 防御塔，后续可以替换为具体的Tower类型
+  // 障碍物，后续可以替换为具体的Obstacle类型，例如Wall、Roo
+  private _obstacle: number | null = null;
+  /// 防御塔，后续可以替换为具体的Tower类型
+  private _tower: TowerConfig | null = null;
 
   constructor(row: number, col: number) {
     this._row = row;
     this._col = col;
   }
 
+  set obstacle(value: number) {
+    this._obstacle = value;
+  }
+  get obstacle(): number {
+    return this._obstacle;
+  }
   set path(value: boolean) {
     this._path = value;
   }
@@ -68,28 +76,5 @@ export class CellModel {
    */
   canBuild(): boolean {
     return this._buildable && this._tower === null;
-  }
-
-  /**
-   * 建造防御塔
-   * @param tower 防御塔
-   * @returns 是否建造成功
-   */
-  buildTower(tower: any): boolean {
-    if (!this.canBuild()) return false;
-
-    this._tower = tower;
-    return true;
-  }
-
-  /**
-   * 移除防御塔
-   * @returns 是否移除成功
-   */
-  removeTower(): boolean {
-    if (this._tower === null) return false;
-
-    this._tower = null;
-    return true;
   }
 }

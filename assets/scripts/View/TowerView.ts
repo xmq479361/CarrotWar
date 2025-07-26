@@ -11,12 +11,14 @@ import {
   UITransform,
   Vec2,
   Label,
+  tween,
 } from "cc";
 import { TowerConfig, TowerLevelConfig } from "../Config/TowerConfig";
 import { BulletView, BulletConfig } from "./BulletView";
 import { EventManager, EventType } from "../Manager/EventManager";
 import { MainGameScene } from "../Scene/MainGameScene";
 import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
+import { Utils } from "../Utils/Utils";
 const { ccclass, property } = _decorator;
 
 @ccclass("TowerView")
@@ -40,8 +42,11 @@ export class TowerView extends SpeedCtrlComponent {
 
   protected start(): void {
     // 注册事件
-    EventManager.Instance.on(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.on(EventType.GameResume, this.onGameResume);
+    EventManager.Instance.on(EventType.GamePause, this.onGamePause.bind(this));
+    EventManager.Instance.on(
+      EventType.GameResume,
+      this.onGameResume.bind(this)
+    );
     this.monsterContainer =
       MainGameScene.Instance.gameView.node.getChildByName("MonsterContainer");
     this.towerLabel = this.node.getComponentInChildren(Label);
@@ -49,8 +54,11 @@ export class TowerView extends SpeedCtrlComponent {
 
   onDestroy() {
     // 取消事件监听
-    EventManager.Instance.off(EventType.GamePause, this.onGamePause);
-    EventManager.Instance.off(EventType.GameResume, this.onGameResume);
+    EventManager.Instance.off(EventType.GamePause, this.onGamePause.bind(this));
+    EventManager.Instance.off(
+      EventType.GameResume,
+      this.onGameResume.bind(this)
+    );
     this.unscheduleAllCallbacks();
     EventManager.Instance.off(
       EventType.SetPriorityTarget,
@@ -72,7 +80,7 @@ export class TowerView extends SpeedCtrlComponent {
     console.info("setTower setup");
     // 加载塔的图片
     this.updateTowerSprite();
-    this.setSchedule(0, this._towerConfig.attackSpeed);
+    this.setSchedule(0, this._levelConfig.attackSpeed);
     // 开始攻击循环
     this.startAttacking();
 
@@ -88,17 +96,7 @@ export class TowerView extends SpeedCtrlComponent {
   }
 
   updateTowerSprite() {
-    if (this.towerSprite && this._levelConfig.spritePath) {
-      resources.load(
-        this._levelConfig.spritePath,
-        SpriteFrame,
-        (err, spriteFrame) => {
-          if (!err) {
-            this.towerSprite.spriteFrame = spriteFrame;
-          }
-        }
-      );
-    }
+    Utils.setSpriteFrame(this.towerSprite, this._levelConfig.spritePath);
     if (this.towerLabel) {
       this.towerLabel.string = `${
         this._towerConfig.name
@@ -136,23 +134,31 @@ export class TowerView extends SpeedCtrlComponent {
     this.speedFactor = speedFactor;
   }
 
+  isValidTarget(target: Node): boolean {
+    if (!target || !target.isValid) {
+      return false;
+    }
+    const distance = Vec2.distance(
+      this.node.worldPosition,
+      target.worldPosition
+    );
+    return distance <= this._levelConfig.range;
+  }
+
   onScheduleCallback(dt: number): void {
     console.info("Tower onScheduleCallback");
     if (!this.isScheduleEnable) return;
 
     // 检查优先目标是否有效且在范围内
-    if (this._priorityTarget && this._priorityTarget.isValid) {
-      if (this.isTargetInRange(this._priorityTarget)) {
-        this._targetNode = this._priorityTarget;
-      } else {
-        // 超出范围，清除优先目标
-        this._priorityTarget = null;
+    if (this.isValidTarget(this._priorityTarget)) {
+      this._targetNode = this._priorityTarget;
+    } else {
+      // 超出范围，清除优先目标
+      this._priorityTarget = null;
+      // 如果没有优先目标或优先目标无效，寻找最近的目标
+      if (!this.isValidTarget(this._targetNode)) {
+        this._targetNode = this.findTarget();
       }
-    }
-
-    // 如果没有优先目标或优先目标无效，寻找最近的目标
-    if (!this._targetNode || !this._targetNode.isValid) {
-      this._targetNode = this.findTarget();
     }
 
     // 如果有目标，则攻击
@@ -202,35 +208,65 @@ export class TowerView extends SpeedCtrlComponent {
     console.info("Tower attack");
     if (!this._targetNode || !this._targetNode.isValid) return;
 
-    // 创建子弹
-    const bullet = instantiate(this.bulletPrefab);
-    const bulletView = bullet.getComponent(BulletView);
+    // 子弹目标
+    let targetPos = this._targetNode.worldPosition.toVec2();
+    // 当前位置坐标
+    let fromPos = this.node.worldPosition.toVec2();
 
-    if (bulletView) {
-      // 设置子弹属性
-      const bulletConfig: BulletConfig = {
-        id: this._towerConfig.type,
-        name: this._towerConfig.name + "子弹",
-        damage: this._levelConfig.damage,
-        damageType: this._towerConfig.damageType,
-        speed: 500,
-        spritePath: `bullets/${this._towerConfig.type}_bullet`,
-        effects: this._levelConfig.effects,
-      };
+    // 计算方向向量
+    const direction = Vec2.subtract(new Vec2(), targetPos, fromPos).normalize();
 
-      // 设置子弹位置
-      bullet.position = this.node.worldPosition;
+    // 计算角度（弧度）
+    // 使用 atan2 获取正确的角度，因为炮塔默认朝左，所以不需要额外加上 PI
+    let angle = Math.atan2(direction.y, direction.x);
 
-      // 设置子弹目标
-      let targetPos = this._targetNode.worldPosition;
-      bulletView.setup(targetPos, this._targetNode, bulletConfig);
-      // 将子弹添加到场景
-      this.node.parent.parent.addChild(bullet);
-      // 播放攻击动画或音效
-      this.playAttackEffect();
-    } else {
-      console.error("BulletView component not found on bullet prefab.");
-    }
+    // 将弧度转换为度数
+    let degrees = angle * (180 / Math.PI);
+
+    console.info(
+      "Tower attack angle: ",
+      this.node.angle,
+      "=>",
+      degrees,
+      direction
+    );
+
+    // 旋转炮塔
+    tween(this.node)
+      // .by(0.1, { angle: this.node.angle })
+      .to(0.1, { angle: ((360 + degrees) % 360) + 5 })
+      .call(() => {
+        // 创建子弹
+        const bullet = instantiate(this.bulletPrefab);
+        const bulletView = bullet.getComponent(BulletView);
+
+        if (bulletView) {
+          // 设置子弹属性
+          const bulletConfig: BulletConfig = {
+            id: this._towerConfig.type,
+            name: this._towerConfig.name + "子弹",
+            damage: this._levelConfig.damage,
+            damageType: this._towerConfig.damageType,
+            speed: 500,
+            spritePath: `bullets/${this._towerConfig.type}_bullet`,
+            effects: this._levelConfig.effects,
+          };
+
+          // 设置子弹位置
+          bullet.position = this.node.worldPosition;
+
+          // 设置子弹目标
+          let targetPos = this._targetNode.worldPosition;
+          bulletView.setup(targetPos, this._targetNode, bulletConfig);
+          // 将子弹添加到场景
+          this.node.parent.parent.addChild(bullet);
+          // 播放攻击动画或音效
+          this.playAttackEffect();
+        } else {
+          console.error("BulletView component not found on bullet prefab.");
+        }
+      })
+      .start();
   }
 
   playAttackEffect() {
@@ -258,7 +294,7 @@ export class TowerView extends SpeedCtrlComponent {
     this.startAttacking();
   }
 
-  getTowerConfig() {
+  getTowerConfig(): TowerConfig {
     return this._towerConfig;
   }
 
@@ -267,14 +303,15 @@ export class TowerView extends SpeedCtrlComponent {
   }
 
   getUpgradeCost() {
-    return this._towerConfig.upgradeCost[this._currentLevel - 1] || 0;
+    return this._towerConfig[this._currentLevel - 1].upgradeCost || 0;
   }
 
   getRecycleValue() {
-    let totalCost = this._towerConfig.cost;
-    for (let i = 0; i < this._currentLevel - 1; i++) {
-      totalCost += this._towerConfig.upgradeCost[i];
-    }
-    return Math.floor(totalCost * this._towerConfig.recycleRate);
+    this._towerConfig.levels[this._currentLevel].upgradeCost;
+    // let totalCost = this._towerConfig.cost;
+    // for (let i = 0; i < this._currentLevel - 1; i++) {
+    //   totalCost += this._towerConfig.levels[i].upgradeCost;
+    // }
+    // return Math.floor(totalCost * this._towerConfig.recycleRate);
   }
 }

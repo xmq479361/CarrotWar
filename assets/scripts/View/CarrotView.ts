@@ -18,6 +18,7 @@ const { ccclass, property } = _decorator;
 export class CarrotView extends Component {
   private _bodySprite: Sprite = null!;
   private _bodyHpLabel: Label = null!;
+  private _collider: Collider2D = null!;
   private _hp: number = 10;
   onLoad() {
     this._bodySprite = this.getComponentInChildren(Sprite);
@@ -25,14 +26,13 @@ export class CarrotView extends Component {
     if (this._bodyHpLabel) {
       this._bodyHpLabel.string = this._hp.toString();
     }
+    this._collider = this.getComponentInChildren(Collider2D);
   }
 
   protected start(): void {
     // 注册单个碰撞体的回调函数
-    let collider = this.getComponentInChildren(Collider2D);
-    if (collider) {
-      console.log("collider", collider);
-      collider.on(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
+    if (this._collider) {
+      this._collider.on(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
     }
     let uiTransform = this.getComponent(UITransform);
     if (uiTransform) {
@@ -44,14 +44,17 @@ export class CarrotView extends Component {
   }
 
   protected onDestroy(): void {
-    let collider = this.getComponentInChildren(Collider2D);
-    if (collider) {
-      collider.off(Contact2DType.BEGIN_CONTACT, this.onContactEnter, this);
+    if (this._collider) {
+      this._collider.off(
+        Contact2DType.BEGIN_CONTACT,
+        this.onContactEnter,
+        this
+      );
     }
   }
 
   onContactEnter(selfCollider: Collider2D, otherCollider: Collider2D) {
-    console.log("onHit", selfCollider, otherCollider, otherCollider.tag);
+    console.info("onHit", otherCollider.tag);
     this._hp--;
     if (this._bodyHpLabel) {
       this._bodyHpLabel.string = this._hp.toString();

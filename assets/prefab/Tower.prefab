@@ -308,7 +308,7 @@
     "_string": "",
     "_horizontalAlign": 1,
     "_verticalAlign": 2,
-    "_actualFontSize": 30.083333333333332,
+    "_actualFontSize": 48.515625,
     "_fontSize": 30,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -495,7 +495,6 @@
     "towerSprite": {
       "__id__": 5
     },
-    "monsterContainer": null,
     "bulletPrefab": {
       "__uuid__": "b3c573a0-cef9-4e1f-b80a-e386666b9338",
       "__expectedType__": "cc.Prefab"

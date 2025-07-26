@@ -9,7 +9,7 @@ import {
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
 import { CellView } from "./CellView";
-import { MapConfig } from "../Model/MapConfig";
+import { MapConfig } from "../Config/MapConfig";
 import { ObstacleView } from "./ObstacleView";
 import { CellMenuView } from "./CellMenuView";
 import { Utils } from "../Utils/Utils";
@@ -220,6 +220,7 @@ export class GameView extends Component {
   showBuildMenu(row: number, col: number, cellView: CellView) {
     if (this._mentView) {
       this._showBuildMenu = true;
+      this.menuNode.active = true;
       // 获取可用的塔类型
       const availableTowers = [
         TowerType.ARROW,
@@ -227,9 +228,9 @@ export class GameView extends Component {
         TowerType.CANNON,
         TowerType.FREEZE,
       ];
+      console.info("showBuildMenu", availableTowers, "cellView", row, "x", col);
       // 设置菜单
       this._mentView.setup(row, col, cellView, availableTowers);
-      this.menuNode.active = true;
     }
   }
 
@@ -256,7 +257,7 @@ export class GameView extends Component {
   upgradeTower(row: number, col: number) {
     const cellView = this._cellViews[row][col];
     console.log("upgradeTower", row, col, cellView);
-    if (!cellView || cellView! instanceof CellView) return false;
+    if (!cellView) return false;
     // 更新视图
 
     (cellView as CellView).upgradeTower();
@@ -271,14 +272,9 @@ export class GameView extends Component {
     console.log("demolishTower", row, col, cellView);
     if (!cellView) return false;
     // 调用GameManager拆除塔
-    // const result = GameManager.Instance.demolishTower(row, col);
-
-    // if (result) {
     // 更新视图
-    cellView.removeTower();
+    cellView.demolishTower();
     this.hideBuildMenu();
-    // }
-    // return result;
   }
 
   /**

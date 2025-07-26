@@ -1,17 +1,18 @@
 import {
   _decorator,
   Component,
-  Node,
   Sprite,
   Color,
   UITransform,
   Prefab,
   instantiate,
 } from "cc";
+import { CellModel } from "../Model/CellModel";
 import { MapManager } from "../Manager/MapManager";
 import { ObstacleView } from "./ObstacleView";
 import { TowerView } from "./TowerView";
-import { TowerConfig } from "../Config/GameConfig";
+import { TowerConfig } from "../Config/TowerConfig";
+import { MainGameScene } from "../Scene/MainGameScene";
 
 const { ccclass, property } = _decorator;
 
@@ -35,7 +36,6 @@ export class CellView extends Component {
   towerPrefab: Prefab = null!;
 
   private _isSelected: boolean = false; // 是否被选中
-  // private _tower: TowerModel | null = null; // 放置的塔模型，默认为nul
 
   private uiTransform: UITransform = null!;
   onLoad() {
@@ -57,12 +57,22 @@ export class CellView extends Component {
 
     // 更新视图
     this.updateView();
+
+    if (cellModel.tower) {
+      this.setTower(cellModel.tower);
+    }
+  }
+  demolishTower() {
+    if (!this._tower) return;
+    this._tower.node.removeFromParent();
+    this._tower = null;
   }
 
   upgradeTower() {
     if (!this._tower) return;
     this._tower.upgrade();
   }
+
   setTower(towerConfig: TowerConfig) {
     console.info("setTower");
     // if (!this.buildable) return;
@@ -78,8 +88,9 @@ export class CellView extends Component {
     }
     let tower = instantiate(this.towerPrefab);
     this._tower = tower.getComponent(TowerView);
-    tower.parent = this.node;
-    tower.setPosition(0, 0, 0);
+    tower.parent = MainGameScene.Instance.gameView.towerContainer; //this.node;
+    // tower.setPosition(0, 0, 0);
+    tower.setWorldPosition(this.node.worldPosition);
     this._tower.setup(this.row, this.col, towerConfig);
   }
 

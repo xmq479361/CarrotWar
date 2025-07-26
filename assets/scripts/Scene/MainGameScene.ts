@@ -9,14 +9,15 @@ import {
   PhysicsSystem2D,
   Vec2,
   Label,
+  Sprite,
 } from "cc";
 import { MapManager } from "../Manager/MapManager";
-import { GameManager } from "../Manager/GameManager";
 import { EventManager, EventType } from "../Manager/EventManager";
 import { GameState } from "../Data/GameDef";
 import { GameView } from "../View/GameView";
-import { MapConfig } from "../Model/MapConfig";
-import { TowerConfig } from "../Config/GameConfig";
+import { MapConfig } from "../Config/MapConfig";
+import { TowerConfig } from "../Config/TowerConfig";
+import { Utils } from "../Utils/Utils";
 
 const { ccclass, property } = _decorator;
 
@@ -36,14 +37,14 @@ export class MainGameScene extends Component {
 
   @property(Node)
   pauseAndResumeButton: Node = null!;
+  @property(Sprite)
+  speedBtn: Sprite = null!;
 
   @property(Node)
   menuButton: Node = null!;
 
   @property(String)
   currentLevel: string = "level1";
-  @property(Node)
-  speedControlNode: Node = null!;
   gold: number = 0;
   life: number = 0;
   currentWave: number = 0;
@@ -156,7 +157,6 @@ export class MainGameScene extends Component {
    * 初始化UI
    */
   private initUI(): void {
-    this.pauseAndResumeButton.active = false;
     this.updateGold();
     this.updateLife();
     this.updateWave();
@@ -221,7 +221,10 @@ export class MainGameScene extends Component {
    */
   transitionToGamePause() {
     this.gameState = GameState.PAUSED;
-    this.pauseAndResumeButton.active = true;
+    Utils.setSpriteFrame(
+      this.pauseAndResumeButton.getComponent(Sprite),
+      "Game/Start/spriteFrame"
+    );
     EventManager.Instance.emit(EventType.GameSpeedChanged, 0);
     EventManager.Instance.emit(EventType.GamePause);
   }
@@ -231,15 +234,20 @@ export class MainGameScene extends Component {
    */
   transitionToGameResume() {
     this.gameState = GameState.PLAYING;
-    this.pauseAndResumeButton.active = true;
+    Utils.setSpriteFrame(
+      this.pauseAndResumeButton.getComponent(Sprite),
+      "Game/Pause/spriteFrame"
+    );
     EventManager.Instance.emit(
       EventType.GameSpeedChanged,
       this._currentSpeedFactor
     );
     EventManager.Instance.emit(EventType.GameResume);
   }
+
   transitionToGameSpeed() {
-    this._currentSpeedFactor = 2.0;
+    this._currentSpeedFactor = 1.0;
+    Utils.setSpriteFrame(this.speedBtn, "Game/Speed_One/spriteFrame");
     EventManager.Instance.emit(
       EventType.GameSpeedChanged,
       this._currentSpeedFactor
@@ -247,6 +255,7 @@ export class MainGameScene extends Component {
   }
   transitionToGameDoubleSpeed() {
     this._currentSpeedFactor = 2.0;
+    Utils.setSpriteFrame(this.speedBtn, "Game/Speed_Two/spriteFrame");
     EventManager.Instance.emit(
       EventType.GameSpeedChanged,
       this._currentSpeedFactor
@@ -266,7 +275,7 @@ export class MainGameScene extends Component {
    */
   updateGold(value?: number) {
     if (value !== undefined) {
-      this.gold = value;
+      this.gold += value;
     }
     this.goldLabel.string = `金币: ${this.gold}`;
   }
@@ -291,6 +300,20 @@ export class MainGameScene extends Component {
     this.waveLabel.string = `波次: ${this.currentWave}/${this.totalWaves}`;
   }
 
+  onToggleGameRun() {
+    if (this.gameState === GameState.PLAYING) {
+      this.transitionToGamePause();
+    } else if (this.gameState === GameState.PAUSED) {
+      this.transitionToGameResume();
+    }
+  }
+  onToggleSpeedControl() {
+    if (this._currentSpeedFactor == 1.0) {
+      this.transitionToGameDoubleSpeed();
+    } else {
+      this.transitionToGameSpeed();
+    }
+  }
   /**
    * 处理建造防御塔事件
    */

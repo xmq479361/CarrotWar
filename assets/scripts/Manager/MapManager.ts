@@ -1,4 +1,4 @@
-import { MapConfig, Point } from "../Model/MapConfig";
+import { MapConfig } from "../Config/MapConfig";
 import { Utils } from "../Utils/Utils";
 import { CellModel } from "../Model/CellModel";
 import { Vec2, Vec3 } from "cc";
@@ -14,6 +14,7 @@ export class MapManager {
   private _mapConfig: MapConfig | null = null;
 
   static _Instance: MapManager = null;
+  private _cells: CellModel[][] = [];
 
   static get Instance() {
     if (MapManager._Instance == null) {
@@ -23,9 +24,6 @@ export class MapManager {
     return MapManager._Instance;
   }
 
-  // get cells() {
-  //   return this._cells;
-  // }
   /**
    * 初始化地图尺寸
    * @param windowWidth 窗口宽度
@@ -182,5 +180,65 @@ export class MapManager {
 
   getRow(y: number) {
     return Math.floor(y / this._cellHeight);
+  }
+
+  getCellModel(row: number, col: number): CellModel | null {
+    return this._cells[row][col];
+  }
+  getCell(row: number, col: number): CellModel | null {
+    if (row < 0 || row >= this._rows || col < 0 || col >= this._cols) {
+      return null;
+    }
+    return this._cells[row][col];
+  }
+
+  /**
+   * 初始化游戏
+   */
+  async loadMapConfig(level: string): Promise<MapConfig> {
+    try {
+      console.log("开始初始化游戏");
+      this._mapConfig = await MapManager.Instance.loadMap(level);
+      console.log("地图配置加载完成", this._mapConfig);
+
+      // 初始化格子模型
+      this.initCells();
+
+      console.log("游戏初始化完成");
+      return this._mapConfig;
+    } catch (error) {
+      console.error("初始化地图失败:", error);
+      throw error;
+    }
+  }
+  /**
+   * 初始化格子模型
+   */
+  private initCells() {
+    const rows = this.mapConfig.rows;
+    const cols = this.mapConfig.cols;
+
+    this._cells = [];
+    for (let row = 0; row < rows; row++) {
+      this._cells[row] = [];
+
+      for (let col = 0; col < cols; col++) {
+        this._cells[row][col] = new CellModel(row, col);
+      }
+    }
+    this.mapConfig.holds.forEach((hold) => {
+      const cell = this.getCell(hold.row, hold.col);
+      if (cell) {
+        cell.buildable = true;
+      }
+    });
+    this.mapConfig.paths.forEach((path) => {
+      path.forEach((cell) => {
+        const cellModel = this.getCell(cell.row, cell.col);
+        if (cellModel) {
+          cellModel.path = true;
+        }
+      });
+    });
   }
 }

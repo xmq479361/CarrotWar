@@ -1,5 +1,5 @@
 import { _decorator, instantiate, Node, Prefab, Label } from "cc";
-import { MapConfig, Point, WaveConfig } from "../Model/MapConfig";
+import { MapConfig, Point, WaveConfig } from "../Config/MapConfig";
 import { EventManager, EventType } from "./EventManager";
 import { MonsterManager } from "./MonsterManager";
 import { MonsterView } from "../View/MonsterView";
@@ -100,7 +100,6 @@ export class MonsterSpawn extends SpeedCtrlComponent {
       this.onGameSpeedChanged.bind(this)
     );
   }
-
   setup(mapConfig: MapConfig) {
     this.mapConfig = mapConfig;
     this._waveLength = mapConfig.waves.length;
@@ -137,16 +136,19 @@ export class MonsterSpawn extends SpeedCtrlComponent {
     }
   }
 
+  onGameSpeedChanged(speedFactor: number) {
+    this.speedFactor = speedFactor;
+  }
   onGamePause() {
     console.log("MonsterSpawn onGamePause");
     this._isPaused = true;
-    this.isScheduleEnable = false;
+    this.stopSchedule();
   }
 
   onGameResume() {
     console.log("MonsterSpawn onGameResume");
     this._isPaused = false;
-    this.isScheduleEnable = true;
+    this.startSchedule();
     // 如果在波次间隔中，继续倒计时
     if (this._nextWaveCountdown > 0) {
       this.startNextWaveCountdown();
@@ -173,7 +175,7 @@ export class MonsterSpawn extends SpeedCtrlComponent {
     console.log(`第 ${this._waveNo + 1} 波怪物已全部消灭`);
 
     // 触发波次结束事件
-    EventManager.Instance.emit(EventType.WaveCompleted, this._waveNo);
+    EventManager.Instance.emit(EventType.WaveCompleted);
 
     // 检查是否还有下一波
     if (this._waveNo + 1 < this._waveLength) {
@@ -183,13 +185,13 @@ export class MonsterSpawn extends SpeedCtrlComponent {
       this.updateWaveInfoLabel();
 
       // 如果设置了自动开始下一波，则开始倒计时
-      if (this.autoStartNextWave) {
-        this._nextWaveCountdown = this.delayBetweenWaves;
-        this.startNextWaveCountdown();
-      } else {
-        // 触发下一波准备就绪事件，等待玩家手动开始
-        EventManager.Instance.emit(EventType.WaveNextReady, this._waveNo);
-      }
+      // if (this.autoStartNextWave) {
+      this._nextWaveCountdown = this.delayBetweenWaves;
+      this.startNextWaveCountdown();
+      // } else {
+      //   // 触发下一波准备就绪事件，等待玩家手动开始
+      //   EventManager.Instance.emit(EventType.WaveNextReady, this._waveNo);
+      // }
     } else {
       // 所有波次完成，游戏胜利
       console.log("所有波次完成");
@@ -294,8 +296,5 @@ export class MonsterSpawn extends SpeedCtrlComponent {
       // 当前波次的怪物全部生成完毕
       this._isSpawning = false;
     }
-  }
-  onGameSpeedChanged(speedFactor: number) {
-    this.speedFactor = speedFactor;
   }
 }

@@ -1,14 +1,21 @@
 import { resources, JsonAsset, Sprite, SpriteFrame } from "cc";
 
 export class Utils {
-
   static setSpriteFrame(sprite: Sprite, spritePath: string) {
-resources.load(spritePath, SpriteFrame,  (error: Error, asset: SpriteFrame) => {
-      if (error) {
-        console.error(`Sprite加载失败: ${spritePath}`, error);
+    if (!sprite) {
+      console.warn("setSpriteFrame: sprite is null");
+      return;
+    }
+    if (!spritePath) {
+      console.warn("setSpriteFrame: spritePath is null");
+      return;
+    }
+    resources.load(spritePath, SpriteFrame, (err, spriteFrame) => {
+      if (err) {
+        console.error("setSpriteFrame: load spriteFrame error:", err);
         return;
       }
-      sprite.spriteFrame = asset;
+      sprite.spriteFrame = spriteFrame;
     });
   }
   /**

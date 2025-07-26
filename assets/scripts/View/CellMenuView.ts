@@ -14,7 +14,7 @@ import {
 import { EventManager, EventType } from "../Manager/EventManager";
 import { MapManager } from "../Manager/MapManager";
 import { MainGameScene } from "../Scene/MainGameScene";
-import { TowerConfig, TowerType } from "../Config/TowerConfig";
+import { TowerConfig, TowerConfigs, TowerType } from "../Config/TowerConfig";
 import { CellView } from "./CellView";
 const { ccclass, property } = _decorator;
 
@@ -51,15 +51,17 @@ export class CellMenuView extends Component {
     this._menuItems = [];
 
     this.node.position = MapManager.Instance.getCellPosition(row, col);
-
     let bgRadius = MapManager.Instance.cellHeight * 1.5;
     let items: MenuItemDef[] = [];
     /// 已经存在Tower，显示删除按钮
     if (cellView.tower) {
       // 创建删除按钮（底部中央）
-      this.createDeleteButton();
-      let towerConfig = cellView.tower.getTowerConfig();
+      let towerConfig: TowerConfig = cellView.tower.getTowerConfig();
+      if (!towerConfig) return;
       let currentLevel = cellView.tower.getCurrentLevel();
+      let levelConfig = towerConfig.levels[currentLevel];
+      bgRadius = levelConfig.range;
+      this.createDeleteButton(levelConfig.recycle);
       let item = this._createMenuItem(towerConfig, currentLevel + 1);
       if (item) items.push(item);
     } else {
@@ -76,8 +78,9 @@ export class CellMenuView extends Component {
 
   _createMenuItem(towerConfig: TowerConfig, level: number = 0): MenuItemDef {
     let levelConfig = towerConfig.levels[level];
+
     if (levelConfig) {
-      let cost = towerConfig.upgradeCost[level];
+      let cost = levelConfig.upgradeCost;
       let canUpgrade = MainGameScene.Instance.gold >= cost;
       return {
         label: `${towerConfig.name} 建造${cost}`,
@@ -89,7 +92,7 @@ export class CellMenuView extends Component {
     }
     return null;
   }
-  private createDeleteButton() {
+  private createDeleteButton(recycleGold: number) {
     const deleteBtn = instantiate(this.menuItemPrefab);
 
     // 设置位置在底部中央
@@ -98,7 +101,7 @@ export class CellMenuView extends Component {
     // 设置按钮文本和样式
     const label = deleteBtn.getComponentInChildren(Label);
     if (label) {
-      label.string = "删除";
+      label.string = `拆除 ¥${recycleGold}`;
     }
 
     // 设置按钮背景颜色
@@ -110,7 +113,13 @@ export class CellMenuView extends Component {
     // 添加点击事件
     const button = deleteBtn.getComponent(Button);
     if (button) {
-      button.node.on(Button.EventType.CLICK, this.onDeleteClick, this);
+      button.node.on(
+        Button.EventType.CLICK,
+        () => {
+          this.onDeleteClick(recycleGold);
+        },
+        this
+      );
     }
 
     this.container.addChild(deleteBtn);
@@ -171,7 +180,7 @@ export class CellMenuView extends Component {
     );
     if (menuItem.towerConfig) {
       let towerConfig = menuItem.towerConfig;
-      let cost = towerConfig.upgradeCost[menuItem.level];
+      let cost = towerConfig.levels[menuItem.level].upgradeCost;
       EventManager.Instance.emit(EventType.GoldChanged, -cost);
       if (menuItem.level > 0) {
         EventManager.Instance.emit(
@@ -191,9 +200,10 @@ export class CellMenuView extends Component {
     }
   }
 
-  private onDeleteClick() {
+  private onDeleteClick(recycleGold: number) {
     console.log(`选择删除 (${this._row}, ${this._col}) 的塔`);
-    EventManager.Instance.emit("demolish-tower", this._row, this._col);
+    EventManager.Instance.emit(EventType.DemolishTower, this._row, this._col);
+    EventManager.Instance.emit(EventType.GoldChanged, recycleGold);
     this.close();
   }
 

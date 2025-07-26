@@ -33,7 +33,7 @@ export class ObstacleView extends Component {
     this._hp -= damage / this._def;
     if (this._hp <= 0) {
       this.node.active = false;
-      EventManager.Instance.emit(EventType.GoldChanged, this._gold);
+      EventManager.Instance.emit(EventType.GoldChanged, this._gold.bind(this));
     }
   }
 }
