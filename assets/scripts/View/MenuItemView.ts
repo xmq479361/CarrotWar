@@ -43,13 +43,8 @@ export class MenuItemView extends Component {
     }
   }
   updateEnable() {
+    if (!this._item) return;
     if (this.sprite) {
-      console.info(
-        "updateEnable:",
-        MainGameScene.Instance.gold,
-        this._item.gold,
-        MainGameScene.Instance.gold >= this._item.gold
-      );
       this.sprite.color =
         MainGameScene.Instance.gold >= this._item.gold
           ? new Color(255, 255, 255, 255)

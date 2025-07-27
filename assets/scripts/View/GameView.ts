@@ -45,6 +45,9 @@ export class GameView extends Component {
   monsterSpawn: MonsterSpawn = null!;
 
   @property(Node)
+  bulletContainer: Node = null!;
+
+  @property(Node)
   obstacleContainer: Node = null!;
 
   @property(Prefab)
@@ -52,7 +55,6 @@ export class GameView extends Component {
 
   @property(Prefab)
   carrotPrefab: Prefab = null!;
-
   @property(Node)
   backgroundNode: Node = null!;
 
@@ -171,6 +173,10 @@ export class GameView extends Component {
         }
       }
     }
+  }
+
+  addBullet(bullet: Node) {
+    this.bulletContainer.addChild(bullet);
   }
 
   /**

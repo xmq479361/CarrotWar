@@ -10,6 +10,9 @@ export class Utils {
       console.warn("setSpriteFrame: spritePath is null");
       return;
     }
+    if (!spritePath.endsWith("/spriteFrame")) {
+      spritePath = spritePath + "/spriteFrame";
+    }
     resources.load(spritePath, SpriteFrame, (err, spriteFrame) => {
       if (err) {
         console.error("setSpriteFrame: load spriteFrame error:", err);

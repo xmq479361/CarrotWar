@@ -45,14 +45,13 @@ export class CellMenuView extends Component {
   ) {
     this._row = row;
     this._col = col;
-    this.radius = MapManager.Instance.cellHeight * 1;
 
     // 清除现有菜单项
     this.container.removeAllChildren();
     this._menuItems = [];
 
     this.node.position = MapManager.Instance.getCellPosition(row, col);
-    let bgRadius = MapManager.Instance.cellHeight * 1.5;
+    this.radius = MapManager.Instance.cellHeight * 1.5;
     let items: MenuItemDef[] = [];
     /// 已经存在Tower，显示删除按钮
     if (cellView.tower) {
@@ -61,7 +60,7 @@ export class CellMenuView extends Component {
       if (!towerConfig) return;
       let currentLevel = cellView.tower.getCurrentLevel();
       let levelConfig = towerConfig.levels[currentLevel];
-      bgRadius = levelConfig.range;
+      this.radius = levelConfig.range;
       this.createDeleteButton(levelConfig.recycle);
       let item = this._createMenuItem(towerConfig, currentLevel + 1);
       if (item) items.push(item);
@@ -72,9 +71,9 @@ export class CellMenuView extends Component {
         if (item) items.push(item);
       });
     }
-    this.createMenuItems(items);
+    this.createMenuItems(items, this.radius);
     let bgRadiusUITransform = this.attackRadiusBg.getComponent(UITransform);
-    bgRadiusUITransform.setContentSize(bgRadius * 2, bgRadius * 2);
+    bgRadiusUITransform.setContentSize(this.radius * 2, this.radius * 2);
   }
 
   _createMenuItem(towerConfig: TowerConfig, level: number = 0): MenuItemDef {
@@ -84,7 +83,7 @@ export class CellMenuView extends Component {
       let cost = levelConfig.upgradeCost;
       let canUpgrade = MainGameScene.Instance.gold >= cost;
       return {
-        label: `${towerConfig.name} 建造${cost}`,
+        label: `${level == 0 ? "建造" : "升级"}${cost}`,
         enable: canUpgrade,
         gold: cost,
         spritePath: levelConfig.spritePath,
@@ -98,7 +97,7 @@ export class CellMenuView extends Component {
     const deleteBtn = instantiate(this.menuItemPrefab);
 
     // 设置位置在底部中央
-    deleteBtn.setPosition(new Vec3(0, -this.radius, 0));
+    deleteBtn.setPosition(new Vec3(0, -this.radius / 2, 0));
 
     // 设置按钮文本和样式
     const label = deleteBtn.getComponentInChildren(Label);
@@ -128,24 +127,36 @@ export class CellMenuView extends Component {
     this._menuItems.push(deleteBtn);
   }
 
-  private createMenuItems(items: MenuItemDef[]) {
+  private createMenuItems(items: MenuItemDef[], radius: number = 80) {
     const count = items.length;
     const angleStep = (2 * Math.PI) / (count + 1);
     const centerAngle = Math.PI / 2; // 从正上方开始
 
     // 计算起始角度
     // 5 ->
-    console.log("count", count, centerAngle, angleStep, Math.PI / 2, Math.PI);
+    console.log(
+      "count",
+      radius,
+      count,
+      centerAngle,
+      angleStep,
+      Math.PI / 2,
+      Math.PI
+    );
     for (let i = 0; i < count; i++) {
       const angle = centerAngle - (i - (count - 1) / 2.0) * angleStep;
 
       const menuItemNode = instantiate(this.menuItemPrefab);
+      menuItemNode
+        .getComponent(UITransform)
+        .setContentSize(radius * 0.75, radius * 0.75);
       let menuItemView = menuItemNode.getComponent(MenuItemView);
       menuItemView.setup(items[i]);
 
       // 计算环形位置
-      const x = this.radius * Math.cos(angle);
-      const y = this.radius * Math.sin(angle);
+      const x = (radius / 2) * Math.cos(angle);
+      const y = (radius / 2) * Math.sin(angle);
+      console.info("angle", angle, x, y, radius);
       menuItemNode.setPosition(new Vec3(x, y, 0));
 
       let item = items[i];
@@ -178,8 +189,8 @@ export class CellMenuView extends Component {
       if (menuItem.level > 0) {
         EventManager.Instance.emit(
           EventType.UpgradeTower,
-          menuItem.towerConfig,
-          menuItem.level
+          this._row,
+          this._col
         );
       } else {
         EventManager.Instance.emit(

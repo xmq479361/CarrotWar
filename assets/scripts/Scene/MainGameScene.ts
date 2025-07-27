@@ -169,7 +169,10 @@ export class MainGameScene extends Component {
    * 处理触摸事件
    */
   onTouch(event: EventTouch) {
-    if (this.gameState !== GameState.PLAYING) {
+    if (
+      this.gameState !== GameState.PLAYING &&
+      this.gameState !== GameState.PAUSED
+    ) {
       return;
     }
 

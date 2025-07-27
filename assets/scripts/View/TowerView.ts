@@ -36,7 +36,7 @@ export class TowerView extends SpeedCtrlComponent {
   bulletStart: Node = null!;
 
   private _towerConfig: TowerConfig = null!;
-  private _currentLevel: number = 1;
+  private _currentLevel: number = 0;
   private _levelConfig: TowerLevelConfig = null!;
   private _row: number = 0;
   private _col: number = 0;
@@ -101,9 +101,7 @@ export class TowerView extends SpeedCtrlComponent {
   updateTowerSprite() {
     Utils.setSpriteFrame(this.towerSprite, this._levelConfig.spritePath);
     if (this.towerLabel) {
-      this.towerLabel.string = `${
-        this._towerConfig.name
-      }-lv:${this._levelConfig.level.toString()}`;
+      this.towerLabel.string = `lv:${this._currentLevel + 1}`;
     }
   }
 
@@ -149,9 +147,6 @@ export class TowerView extends SpeedCtrlComponent {
   }
 
   onScheduleCallback(dt: number): void {
-    console.info("Tower onScheduleCallback");
-    if (!this.isScheduleEnable) return;
-
     // 检查优先目标是否有效且在范围内
     if (this.isValidTarget(this._priorityTarget)) {
       this._targetNode = this._priorityTarget;
@@ -246,7 +241,7 @@ export class TowerView extends SpeedCtrlComponent {
             damage: this._levelConfig.damage,
             damageType: this._towerConfig.damageType,
             speed: 500,
-            spritePath: `bullets/${this._towerConfig.type}_bullet`,
+            spritePath: `Game/Bullet/ID1_0`,
             effects: this._levelConfig.effects,
           };
 
@@ -259,6 +254,7 @@ export class TowerView extends SpeedCtrlComponent {
           bulletView.setup(targetPos, this._targetNode, bulletConfig);
           bulletView.speedFactor = this.speedFactor;
           // 将子弹添加到场景
+          MainGameScene.Instance.gameView.addBullet(bullet);
           this.node.parent.parent.addChild(bullet);
           // 播放攻击动画或音效
           this.playAttackEffect();
@@ -277,7 +273,7 @@ export class TowerView extends SpeedCtrlComponent {
   upgrade() {
     if (this._currentLevel < this._towerConfig.levels.length) {
       this._currentLevel++;
-      this._levelConfig = this._towerConfig.levels[this._currentLevel - 1];
+      this._levelConfig = this._towerConfig.levels[this._currentLevel];
       // 更新塔的外观和属性
       this.updateTowerSprite();
 
@@ -303,7 +299,7 @@ export class TowerView extends SpeedCtrlComponent {
   }
 
   getUpgradeCost() {
-    return this._towerConfig[this._currentLevel - 1].upgradeCost || 0;
+    return this._towerConfig[this._currentLevel].upgradeCost || 0;
   }
 
   getRecycleValue() {
