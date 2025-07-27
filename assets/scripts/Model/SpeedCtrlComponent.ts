@@ -64,13 +64,13 @@ export class SpeedCtrlComponent extends Component {
   }
 
   set speedFactor(speedFactor: number) {
-    console.log(
-      "set speed factor: ",
-      this.name,
-      this._speedFactor,
-      "=",
-      speedFactor
-    );
+    // console.log(
+    //   "set speed factor: ",
+    //   this.name,
+    //   this._speedFactor,
+    //   "=",
+    //   speedFactor
+    // );
     this._speedFactor = speedFactor;
   }
   stopSchedule() {

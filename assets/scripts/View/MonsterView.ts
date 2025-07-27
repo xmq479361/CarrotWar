@@ -20,10 +20,22 @@ import { MonsterManager } from "../Manager/MonsterManager";
 import { Utils } from "../Utils/Utils";
 import { BulletView } from "./BulletView";
 import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
+import { createLifeMixin, ILife } from "../Model/LifeComponent";
 const { ccclass, property } = _decorator;
-
+// 创建自定义生命特性
+const MonsterLife = createLifeMixin({
+  maxHp: 200,
+  defer: 15,
+  onDamage: (damage) => {
+    console.log(`受到伤害: ${damage}`);
+  },
+  onDeath: () => {
+    console.log("单位死亡");
+  },
+});
 @ccclass("MonsterView")
 export class MonsterView extends SpeedCtrlComponent {
+  life: ILife;
   @property
   speed: number = 100;
 
@@ -32,29 +44,43 @@ export class MonsterView extends SpeedCtrlComponent {
   collider: Collider2D | null = null;
   private _isMoving: boolean = false;
   private monsterConfig: MonsterConfig | null = null;
-  @property
-  hp: number = 0;
-  @property
-  maxHp: number = 0; // 最大hp
+  // @property
+  // hp: number = 0;
+  // @property
+  // maxHp: number = 0; // 最大hp
   private _currentTarget: Point | null = null;
 
-  get _hp(): number {
-    return this.hp;
+  // 被锁定攻击值
+  @property
+  beAttack: number = 0;
+  @property
+  get hp(): number {
+    return this.life.curHp;
   }
-  set _hp(value: number) {
-    this.hp = value;
+  set hp(value: number) {
+    this.life.curHp = value;
   }
-  get _maxHp(): number {
-    return this.maxHp;
+  @property
+  get maxHp(): number {
+    return this.life.maxHp;
   }
-  set _maxHp(value: number) {
-    this.maxHp = value;
+  set maxHp(value: number) {
+    this.life.maxHp = value;
   }
-  // @property
-  // hpSprite: Sprite | null = null;
+  //获取剩余可被生命值.(去掉即将被攻击的生命值)
+  get remainHp(): number {
+    return this.life.remainHp;
+  }
 
+  preAttack(value: number) {
+    this.beAttack += value;
+  }
   @property(ProgressBar)
   hpBar: ProgressBar;
+
+  protected onLoad(): void {
+    this.life = new MonsterLife();
+  }
 
   protected start(): void {
     // console.log("Move start: ", this.node.position);
@@ -105,11 +131,14 @@ export class MonsterView extends SpeedCtrlComponent {
       let bulletView = otherCollider.node.parent.getComponent(BulletView);
       console.log("Monster onHit", otherCollider.node.name, otherCollider.tag);
       if (bulletView) {
-        this._hp -= bulletView.attack;
-        if (this.hpBar) {
-          this.hpBar.progress = this._hp / this._maxHp;
+        this.hp -= bulletView.attack;
+        if (this.beAttack > bulletView.attack) {
+          this.beAttack -= bulletView.attack;
         }
-        if (this._hp <= 0) {
+        if (this.hpBar) {
+          this.hpBar.progress = this.hp / this.maxHp;
+        }
+        if (this.hp <= 0) {
           this.onDismiss();
         }
         bulletView.onDismiss();
@@ -153,8 +182,9 @@ export class MonsterView extends SpeedCtrlComponent {
   ) {
     this.node.position = MapManager.Instance.getLocationVec3(col, row);
     this.speed = wave.speed * 100;
-    this._hp = wave.hp;
-    this._maxHp = wave.hp;
+    this.hp = wave.hp;
+    this.maxHp = wave.hp;
+    this.beAttack = 0;
     // wave.enemyType;
     this.monsterConfig = monsterConfig;
     if (this.hpBar) {

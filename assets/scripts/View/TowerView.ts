@@ -19,6 +19,8 @@ import { EventManager, EventType } from "../Manager/EventManager";
 import { MainGameScene } from "../Scene/MainGameScene";
 import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
 import { Utils } from "../Utils/Utils";
+import { LifeComponent } from "../Model/LifeComponent";
+import { MonsterView } from "./MonsterView";
 const { ccclass, property } = _decorator;
 
 @ccclass("TowerView")
@@ -83,7 +85,7 @@ export class TowerView extends SpeedCtrlComponent {
     console.info("setTower setup");
     // 加载塔的图片
     this.updateTowerSprite();
-    this.setSchedule(0, this._levelConfig.attackSpeed);
+    this.setSchedule(0.1, this._levelConfig.attackSpeed);
     // 开始攻击循环
     this.startAttacking();
 
@@ -143,7 +145,25 @@ export class TowerView extends SpeedCtrlComponent {
       this.node.worldPosition,
       target.worldPosition
     );
-    return distance <= this._levelConfig.range;
+    if (distance > this._levelConfig.range) {
+      return false;
+    }
+    // let lifeComponent = target.getComponent(LifeComponent);
+    // if ()
+    let monsterView = target.getComponent(MonsterView);
+    if (!monsterView) {
+      return false;
+    }
+    if (!monsterView || monsterView.remainHp < this._levelConfig.damage) {
+      console.info(
+        "monsterView: ",
+        monsterView.remainHp,
+        monsterView.hp,
+        this._levelConfig.damage
+      );
+      return false;
+    }
+    return true;
   }
 
   onScheduleCallback(dt: number): void {
@@ -161,6 +181,7 @@ export class TowerView extends SpeedCtrlComponent {
 
     // 如果有目标，则攻击
     if (this._targetNode) {
+      // this.delayTime = this.intervalTime - 5;
       this.attack();
     }
   }
@@ -221,12 +242,17 @@ export class TowerView extends SpeedCtrlComponent {
     console.info("Tower attack");
     if (!this._targetNode || !this._targetNode.isValid) return;
 
+    let monsterView = this._targetNode.getComponent(MonsterView);
+    if (!monsterView || monsterView.remainHp < 0) {
+      return false;
+    }
+    monsterView.preAttack(this._levelConfig.damage);
     // 将弧度转换为度数
     let degrees = this.getAngle(this.node);
     console.info("degrees: ", degrees);
     // 旋转炮塔
     tween(this.node)
-      .to((degrees / 900) * this.speedFactor, { angle: degrees })
+      .to(degrees / 900 / this.speedFactor, { angle: degrees })
       .call(() => {
         // 创建子弹
         const bullet = instantiate(this.bulletPrefab);
@@ -245,17 +271,17 @@ export class TowerView extends SpeedCtrlComponent {
             effects: this._levelConfig.effects,
           };
 
-          // 设置子弹位置
-          bullet.worldPosition = this.bulletStart.worldPosition;
           if (!this._targetNode || !this._targetNode.isValid) return;
           this.node.angle = this.getAngle(this.node);
+          // 设置子弹位置
+          bullet.worldPosition = this.bulletStart.worldPosition;
+          // 将子弹添加到场景
+          MainGameScene.Instance.gameView.addBullet(bullet);
           // 设置子弹目标
           let targetPos = this._targetNode.worldPosition;
           bulletView.setup(targetPos, this._targetNode, bulletConfig);
           bulletView.speedFactor = this.speedFactor;
-          // 将子弹添加到场景
-          MainGameScene.Instance.gameView.addBullet(bullet);
-          this.node.parent.parent.addChild(bullet);
+          // this.node.parent.parent.addChild(bullet);
           // 播放攻击动画或音效
           this.playAttackEffect();
         } else {

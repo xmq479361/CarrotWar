@@ -205,12 +205,12 @@
       "__id__": 8
     },
     "enabledContactListener": true,
-    "bullet": false,
+    "bullet": true,
     "awakeOnLoad": true,
     "_group": 16,
     "_type": 2,
-    "_allowSleep": true,
-    "_gravityScale": 1,
+    "_allowSleep": false,
+    "_gravityScale": 0,
     "_linearDamping": 0,
     "_angularDamping": 0,
     "_linearVelocity": {
@@ -219,7 +219,7 @@
       "y": 0
     },
     "_angularVelocity": 0,
-    "_fixedRotation": false,
+    "_fixedRotation": true,
     "_id": ""
   },
   {
@@ -239,9 +239,9 @@
       "__id__": 10
     },
     "tag": 20,
-    "_group": 1,
+    "_group": 16,
     "_density": 1,
-    "_sensor": false,
+    "_sensor": true,
     "_friction": 0.2,
     "_restitution": 0,
     "_offset": {
