@@ -106,6 +106,7 @@ export class MonsterSpawn extends SpeedCtrlComponent {
     this._waveNo = 0;
     this._waveNum = 0;
     this._aliveMonsters = 0;
+    this.speedFactor = 1.0;
     this._isPaused = false;
     this._isSpawning = false;
     this._nextWaveCountdown = 0;
@@ -121,13 +122,13 @@ export class MonsterSpawn extends SpeedCtrlComponent {
   onGameStart() {
     console.log("MonsterSpawn onGameStart");
     this.unscheduleAllCallbacks();
+    this.monsterContainer.removeAllChildren();
     this._isPaused = false;
     this._isSpawning = false;
     this._waveNo = 0;
     this._waveNum = 0;
     this._aliveMonsters = 0;
 
-    this.updateWaveInfoLabel();
     if (this.monsterContainer) {
       this.monsterContainer.removeAllChildren();
 
@@ -262,6 +263,7 @@ export class MonsterSpawn extends SpeedCtrlComponent {
     this.updateWaveInfoLabel();
     this.path = this.mapConfig.paths[this.wave.pathIndex ?? 0];
     this.monsterConfig = MonsterConfigs.getMonsterConfig(this.wave.enemyType);
+    this.monsterConfig.reward = this.wave.reward ?? this.monsterConfig.reward;
     this.startCol = this.wave.startCol ?? this.mapConfig.startCol;
     this.startRow = this.wave.startRow ?? this.mapConfig.startRow;
     // 延迟后开始生成怪物
@@ -286,6 +288,7 @@ export class MonsterSpawn extends SpeedCtrlComponent {
         this.wave
       );
       monsterView.setTarget([...this.path]);
+      monsterView.speedFactor = this.speedFactor;
       // 增加存活怪物计数
       this._aliveMonsters++;
     }

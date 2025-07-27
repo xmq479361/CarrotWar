@@ -59,6 +59,9 @@ export class MainGameScene extends Component {
     return MainGameScene._instance;
   }
 
+  get speedFactor(): number {
+    return this._currentSpeedFactor;
+  }
   protected onLoad(): void {
     if (MainGameScene._instance) {
       this.destroy();

@@ -59,6 +59,9 @@ export class SpeedCtrlComponent extends Component {
       this._delayTime = 0;
     }
   }
+  get speedFactor() {
+    return this._speedFactor;
+  }
 
   set speedFactor(speedFactor: number) {
     console.log(

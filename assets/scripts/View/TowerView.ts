@@ -32,6 +32,9 @@ export class TowerView extends SpeedCtrlComponent {
   @property(Prefab)
   bulletPrefab: Prefab = null!;
 
+  @property(Node)
+  bulletStart: Node = null!;
+
   private _towerConfig: TowerConfig = null!;
   private _currentLevel: number = 1;
   private _levelConfig: TowerLevelConfig = null!;
@@ -203,15 +206,11 @@ export class TowerView extends SpeedCtrlComponent {
     return monsters;
   }
 
-  // 在攻击方法中也考虑游戏速度
-  attack() {
-    console.info("Tower attack");
-    if (!this._targetNode || !this._targetNode.isValid) return;
-
+  getAngle(fromNode: Node) {
     // 子弹目标
     let targetPos = this._targetNode.worldPosition.toVec2();
     // 当前位置坐标
-    let fromPos = this.node.worldPosition.toVec2();
+    let fromPos = fromNode.worldPosition.toVec2();
 
     // 计算方向向量
     const direction = Vec2.subtract(new Vec2(), targetPos, fromPos).normalize();
@@ -219,27 +218,26 @@ export class TowerView extends SpeedCtrlComponent {
     // 计算角度（弧度）
     // 使用 atan2 获取正确的角度，因为炮塔默认朝左，所以不需要额外加上 PI
     let angle = Math.atan2(direction.y, direction.x);
+    // 将弧度转换为度数
+    return (360 + angle * (180 / Math.PI)) % 360;
+  }
+  // 在攻击方法中也考虑游戏速度
+  attack() {
+    console.info("Tower attack");
+    if (!this._targetNode || !this._targetNode.isValid) return;
 
     // 将弧度转换为度数
-    let degrees = angle * (180 / Math.PI);
-
-    console.info(
-      "Tower attack angle: ",
-      this.node.angle,
-      "=>",
-      degrees,
-      direction
-    );
-
+    let degrees = this.getAngle(this.node);
+    console.info("degrees: ", degrees);
     // 旋转炮塔
     tween(this.node)
-      // .by(0.1, { angle: this.node.angle })
-      .to(0.1, { angle: ((360 + degrees) % 360) + 5 })
+      .to((degrees / 900) * this.speedFactor, { angle: degrees })
       .call(() => {
         // 创建子弹
         const bullet = instantiate(this.bulletPrefab);
         const bulletView = bullet.getComponent(BulletView);
 
+        if (!this._targetNode || !this._targetNode.isValid) return;
         if (bulletView) {
           // 设置子弹属性
           const bulletConfig: BulletConfig = {
@@ -253,11 +251,13 @@ export class TowerView extends SpeedCtrlComponent {
           };
 
           // 设置子弹位置
-          bullet.position = this.node.worldPosition;
-
+          bullet.worldPosition = this.bulletStart.worldPosition;
+          if (!this._targetNode || !this._targetNode.isValid) return;
+          this.node.angle = this.getAngle(this.node);
           // 设置子弹目标
           let targetPos = this._targetNode.worldPosition;
           bulletView.setup(targetPos, this._targetNode, bulletConfig);
+          bulletView.speedFactor = this.speedFactor;
           // 将子弹添加到场景
           this.node.parent.parent.addChild(bullet);
           // 播放攻击动画或音效

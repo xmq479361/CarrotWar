@@ -31,15 +31,12 @@ export class MonsterView extends SpeedCtrlComponent {
 
   collider: Collider2D | null = null;
   private _isMoving: boolean = false;
-  private _isPaused: boolean = false;
-  private _currentTween: Tween<Node> | null = null;
   private monsterConfig: MonsterConfig | null = null;
   @property
   hp: number = 0;
   @property
   maxHp: number = 0; // 最大hp
   private _currentTarget: Point | null = null;
-  // private _moveDir: Vec3 = new Vec3();
 
   get _hp(): number {
     return this.hp;
@@ -110,12 +107,6 @@ export class MonsterView extends SpeedCtrlComponent {
       if (bulletView) {
         this._hp -= bulletView.attack;
         if (this.hpBar) {
-          console.log(
-            "Monster progress",
-            this._hp,
-            this._maxHp,
-            this._hp / this._maxHp
-          );
           this.hpBar.progress = this._hp / this._maxHp;
         }
         if (this._hp <= 0) {
@@ -138,24 +129,16 @@ export class MonsterView extends SpeedCtrlComponent {
       this.monsterConfig.reward
     );
   }
+
   // 游戏暂停处理
   onGamePause() {
-    // if (this._isMoving && this._currentTween) {
-    //   this._isPaused = true;
-    //   this.stopSchedule();
-    //   // this._currentTween.stop();
-    // }
     this._isMoving = false;
-    this._isPaused = true;
     this.stopSchedule();
   }
 
   // 游戏恢复处理
   onGameResume() {
     this._isMoving = true;
-    if (this._isPaused) {
-      this._isPaused = false;
-    }
     this.startSchedule();
   }
 
@@ -197,18 +180,11 @@ export class MonsterView extends SpeedCtrlComponent {
 
   addTarget(target: Point) {
     this.targets.push(target);
-    if (!this._isPaused) {
-      this.startSchedule();
-      // this.checkToMove();
-    }
+    this.startSchedule();
   }
 
   isMoving() {
     return this._isMoving;
-  }
-
-  isPaused() {
-    return this._isPaused;
   }
 
   stopMove() {
@@ -220,15 +196,9 @@ export class MonsterView extends SpeedCtrlComponent {
   }
   // 定时回调-移动怪物
   onScheduleCallback(dt: number): void {
-    if (!this._isMoving || this._isPaused) return;
+    if (!this._isMoving) return;
 
-    // if (this.targets.length == 0) {
-    //   console.info("Monster onScheduleCallback, taregts length is 0");
-    //   this.stopMove();
-    //   return;
-    // }
     if (!this._currentTarget) {
-      console.info("Monster shift target");
       this._currentTarget = this.targets.shift();
       if (!this._currentTarget) {
         console.info("Monster shift target empty");
@@ -263,51 +233,8 @@ export class MonsterView extends SpeedCtrlComponent {
       this.node.position = targetPos1.toVec3();
       // 移除已到达的目标点
       this._currentTarget = null;
-      //this.targets.shift();
-      // if (!this._currentTarget) {
-      //   this.stopMove();
-      //   return;
-      // }
     }
   }
-  // checkToMove(fromPrev: boolean = false): boolean {
-  //   if (this._isMoving || this._isPaused) return false;
-
-  //   if (this.targets.length == 0) {
-  //     this._isMoving = false;
-  //     if (fromPrev) {
-  //       // console.log("Move end: ", this.node.position);
-  //       this.unscheduleAllCallbacks();
-  //       this.node.removeFromParent();
-  //       MonsterManager.Instance.recycleMonster(this.node);
-  //     }
-  //     return false;
-  //   }
-
-  //   let nextTarget = this.targets.shift();
-  //   if (!nextTarget) {
-  //     this._isMoving = false;
-  //     return false;
-  //   }
-
-  //   this._isMoving = true;
-  //   let targetXY = MapManager.Instance.getLocationVec3(
-  //     nextTarget.col,
-  //     nextTarget.row
-  //   );
-  //   let dir = targetXY.clone().subtract(this.node.position);
-
-  //   this._currentTween = tween(this.node)
-  //     .to(dir.length() / this.speed, { position: targetXY })
-  //     .call(() => {
-  //       this._isMoving = false;
-  //       this._currentTween = null;
-  //       this.checkToMove(true);
-  //     })
-  //     .start();
-
-  //   return true;
-  // }
 
   onMonsterClick(event) {
     // 阻止事件冒泡

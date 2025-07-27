@@ -16,6 +16,7 @@ import { MapManager } from "../Manager/MapManager";
 import { MainGameScene } from "../Scene/MainGameScene";
 import { TowerConfig, TowerConfigs, TowerType } from "../Config/TowerConfig";
 import { CellView } from "./CellView";
+import { MenuItemDef, MenuItemView } from "./MenuItemView";
 const { ccclass, property } = _decorator;
 
 @ccclass("CellMenuView")
@@ -85,6 +86,7 @@ export class CellMenuView extends Component {
       return {
         label: `${towerConfig.name} 建造${cost}`,
         enable: canUpgrade,
+        gold: cost,
         spritePath: levelConfig.spritePath,
         towerConfig: towerConfig,
         level: level,
@@ -135,31 +137,21 @@ export class CellMenuView extends Component {
     // 5 ->
     console.log("count", count, centerAngle, angleStep, Math.PI / 2, Math.PI);
     for (let i = 0; i < count; i++) {
-      //   const angle = startAngle - i * angleStep;
       const angle = centerAngle - (i - (count - 1) / 2.0) * angleStep;
 
-      const btn = instantiate(this.menuItemPrefab);
-      let item = items[i];
-      if (!item.enable) {
-        let sprite = btn.getComponentInChildren(Sprite);
-        if (sprite) {
-          sprite.color = new Color(100, 100, 100, 255);
-        }
-      }
+      const menuItemNode = instantiate(this.menuItemPrefab);
+      let menuItemView = menuItemNode.getComponent(MenuItemView);
+      menuItemView.setup(items[i]);
+
       // 计算环形位置
       const x = this.radius * Math.cos(angle);
       const y = this.radius * Math.sin(angle);
-      btn.setPosition(new Vec3(x, y, 0));
+      menuItemNode.setPosition(new Vec3(x, y, 0));
 
-      // 设置按钮文本
-      const label = btn.getComponentInChildren(Label);
-      if (label) {
-        label.string = item.label; //this.getTowerName(towerConfig);
-      }
-
+      let item = items[i];
       // 添加点击事件
-      const button = btn.getComponent(Button);
-      if (item.enable && button) {
+      const button = menuItemView.getComponent(Button);
+      if (button) {
         button.node.on(
           Button.EventType.CLICK,
           () => {
@@ -169,8 +161,8 @@ export class CellMenuView extends Component {
         );
       }
 
-      this.container.addChild(btn);
-      this._menuItems.push(btn);
+      this.container.addChild(menuItemNode);
+      this._menuItems.push(menuItemNode);
     }
   }
 
@@ -181,6 +173,7 @@ export class CellMenuView extends Component {
     if (menuItem.towerConfig) {
       let towerConfig = menuItem.towerConfig;
       let cost = towerConfig.levels[menuItem.level].upgradeCost;
+      if (MainGameScene.Instance.gold < cost) return;
       EventManager.Instance.emit(EventType.GoldChanged, -cost);
       if (menuItem.level > 0) {
         EventManager.Instance.emit(
@@ -210,12 +203,4 @@ export class CellMenuView extends Component {
   close() {
     this.node.active = false;
   }
-}
-
-interface MenuItemDef {
-  label: string;
-  enable: boolean;
-  spritePath: string;
-  towerConfig: TowerConfig;
-  level: number;
 }

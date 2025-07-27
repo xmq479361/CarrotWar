@@ -12,6 +12,7 @@ import {
 import { EventManager, EventType } from "../Manager/EventManager";
 import { DamageType } from "../Config/DamageConfig";
 import { SpeedCtrlComponent } from "../Model/SpeedCtrlComponent";
+import { Utils } from "../Utils/Utils";
 const { ccclass, property } = _decorator;
 
 @ccclass("BulletView")
@@ -36,19 +37,8 @@ export class BulletView extends SpeedCtrlComponent {
     this.speed = bulletConfig.speed || 500;
     this.startSchedule();
     this.setSchedule(0, 0);
-    console.log("BulletView setup", this.targetPos, this.bulletConfig);
     // 加载子弹图片
-    if (bulletConfig.spritePath) {
-      resources.load(
-        bulletConfig.spritePath,
-        SpriteFrame,
-        (err, spriteFrame) => {
-          if (!err && this.bulletSprite) {
-            this.bulletSprite.spriteFrame = spriteFrame;
-          }
-        }
-      );
-    }
+    Utils.setSpriteFrame(this.bulletSprite, bulletConfig.spritePath);
   }
 
   start() {

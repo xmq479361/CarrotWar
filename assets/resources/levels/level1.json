@@ -74,6 +74,16 @@
       "reward": 40,
       "delay": 1.5,
       "pathIndex": 0
+    },
+    {
+      "enemyType": 1,
+      "count": 15,
+      "interval": 1.2,
+      "hp": 50,
+      "speed": 1.0,
+      "reward": 50,
+      "delay": 2.0,
+      "pathIndex": 0
     }
   ]
 }

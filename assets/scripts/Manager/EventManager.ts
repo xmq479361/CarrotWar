@@ -40,13 +40,13 @@ export enum EventType {
   UpgradeTower = "UpgradeTower",
   DemolishTower = "DemolishTower",
   // 游戏关卡事件
-  WaveNextReady = "WaveNexteady",
+  WaveNextReady = "WaveNextReady",
   WaveCompleted = "WaveCompleted",
   WaveChanged = "WaveChanged",
   WaveStarted = "WaveStarted",
   // 新增事件类型
   SetPriorityTarget = "set-priority-target",
-  GameSpeedChanged = "game-speed-changed",
+  GameSpeedChanged = "GameSpeedChanged",
 }
 export class EventManager {
   private static _instance: EventManager;
@@ -104,7 +104,7 @@ export class EventManager {
    * @param args 参数
    */
   emit(eventName: string, ...args: any[]): void {
-    console.log("emit event: " + eventName);
+    console.log("emit event: " + eventName, args);
     if (!this._events.has(eventName)) return;
 
     const callbacks = this._events.get(eventName)!;

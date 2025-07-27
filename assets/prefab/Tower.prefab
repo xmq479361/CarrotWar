@@ -308,7 +308,7 @@
     "_string": "",
     "_horizontalAlign": 1,
     "_verticalAlign": 2,
-    "_actualFontSize": 48.515625,
+    "_actualFontSize": 46.171875,
     "_fontSize": 30,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -384,8 +384,8 @@
     },
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 0,
-      "y": 24.535,
+      "x": 36,
+      "y": 0.03,
       "z": 0
     },
     "_lrot": {
@@ -498,6 +498,9 @@
     "bulletPrefab": {
       "__uuid__": "b3c573a0-cef9-4e1f-b80a-e386666b9338",
       "__expectedType__": "cc.Prefab"
+    },
+    "bulletStart": {
+      "__id__": 14
     },
     "_id": ""
   },

@@ -77,11 +77,14 @@ export class GameView extends Component {
     this.towerContainer.removeAllChildren();
     this.roadContainer.removeAllChildren();
     this.obstacleContainer.removeAllChildren();
-    this.monsterSpawn.node.removeAllChildren();
+    if (!this.monsterSpawn) {
+      this.monsterSpawn = this.node.getComponent(MonsterSpawn);
+    }
     if (!mapConfig) {
       console.error("地图配置为空");
       return;
     }
+    // this.monsterSpawn.speedFactor = this.speedFactor;
     this.monsterSpawn.setup(mapConfig);
 
     console.info("GameView - initializeGame", mapConfig);
